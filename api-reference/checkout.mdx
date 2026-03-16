@@ -1,0 +1,22 @@
+---
+title: 'Checkout'
+description: 'Initialize checkout sessions'
+---
+
+## Initialize Checkout
+
+Initialize a checkout session.
+
+```bash
+GET /public/v1/checkout/:hash
+```
+
+<Info>
+  This endpoint does not require API token authentication.
+</Info>
+
+### URL Parameters
+
+<ParamField path="hash" type="string" required>
+  Checkout hash
+</ParamField>

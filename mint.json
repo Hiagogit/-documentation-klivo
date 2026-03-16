@@ -1,0 +1,79 @@
+{
+  "name": "Klivopay API",
+  "logo": {
+    "dark": "/logo/dark.svg",
+    "light": "/logo/light.svg"
+  },
+  "favicon": "/favicon.svg",
+  "colors": {
+    "primary": "#0D9373",
+    "light": "#07C983",
+    "dark": "#0D9373",
+    "anchors": {
+      "from": "#0D9373",
+      "to": "#07C983"
+    }
+  },
+  "topbarLinks": [
+    {
+      "name": "Support",
+      "url": "mailto:support@klivopay.com.br"
+    }
+  ],
+  "topbarCtaButton": {
+    "name": "Dashboard",
+    "url": "https://klivopay.com.br"
+  },
+  "tabs": [
+    {
+      "name": "API Reference",
+      "url": "api-reference"
+    }
+  ],
+  "anchors": [
+    {
+      "name": "Documentation",
+      "icon": "book-open-cover",
+      "url": "https://docs.klivopay.com.br"
+    },
+    {
+      "name": "Community",
+      "icon": "slack",
+      "url": "https://klivopay.com.br/community"
+    }
+  ],
+  "navigation": [
+    {
+      "group": "Get Started",
+      "pages": [
+        "introduction",
+        "authentication",
+        "quickstart"
+      ]
+    },
+    {
+      "group": "API Documentation",
+      "pages": [
+        "api-reference/transactions",
+        "api-reference/products",
+        "api-reference/offers",
+        "api-reference/installments",
+        "api-reference/checkout",
+        "api-reference/user"
+      ]
+    },
+    {
+      "group": "Advanced",
+      "pages": [
+        "webhooks",
+        "examples",
+        "status-codes"
+      ]
+    }
+  ],
+  "footerSocials": {
+    "twitter": "https://twitter.com/klivopay",
+    "github": "https://github.com/klivopay",
+    "linkedin": "https://www.linkedin.com/company/klivopay"
+  }
+}

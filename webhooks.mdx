@@ -1,0 +1,157 @@
+---
+title: 'Webhooks'
+description: 'Receive real-time transaction updates'
+---
+
+## Overview
+
+Klivopay can send real-time notifications about transaction status updates to your server using webhooks (postbacks).
+
+## Setting Up Webhooks
+
+Include the `postback_url` field when creating a transaction:
+
+```json
+{
+  "postback_url": "https://your-domain.com/webhooks/klivopay",
+  // ... other transaction fields
+}
+```
+
+## Webhook Payload
+
+When a transaction status changes, Klivopay will POST the following payload to your webhook URL:
+
+```json
+{
+  "transaction_hash": "abc123def456",
+  "status": "paid",
+  "amount": 10000,
+  "payment_method": "credit_card",
+  "customer": {
+    "name": "João Silva",
+    "email": "joao@example.com",
+    "document": "12345678900"
+  },
+  "timestamp": "2026-03-14T10:30:00Z"
+}
+```
+
+## Transaction Statuses
+
+<ResponseField name="pending" type="status">
+  Transaction created, awaiting payment
+</ResponseField>
+
+<ResponseField name="paid" type="status">
+  Payment received and confirmed
+</ResponseField>
+
+<ResponseField name="refunded" type="status">
+  Transaction has been refunded
+</ResponseField>
+
+<ResponseField name="failed" type="status">
+  Payment failed or was declined
+</ResponseField>
+
+<ResponseField name="expired" type="status">
+  PIX payment expired (not paid within expiration time)
+</ResponseField>
+
+## Implementing Your Webhook
+
+### Example Node.js Implementation
+
+```javascript
+const express = require('express');
+const app = express();
+
+app.post('/webhooks/klivopay', express.json(), (req, res) => {
+  const { transaction_hash, status, amount, customer } = req.body;
+  
+  console.log(`Transaction ${transaction_hash} is now ${status}`);
+  
+  // Process the webhook
+  if (status === 'paid') {
+    // Grant access to customer
+    grantAccess(customer.email);
+  } else if (status === 'refunded') {
+    // Revoke access
+    revokeAccess(customer.email);
+  }
+  
+  // Always respond with 200
+  res.status(200).send('OK');
+});
+```
+
+### Example Python Implementation
+
+```python
+from flask import Flask, request
+
+app = Flask(__name__)
+
+@app.route('/webhooks/klivopay', methods=['POST'])
+def klivopay_webhook():
+    data = request.get_json()
+    
+    transaction_hash = data['transaction_hash']
+    status = data['status']
+    
+    print(f"Transaction {transaction_hash} is now {status}")
+    
+    if status == 'paid':
+        # Grant access
+        grant_access(data['customer']['email'])
+    elif status == 'refunded':
+        # Revoke access
+        revoke_access(data['customer']['email'])
+    
+    return 'OK', 200
+```
+
+## Security Best Practices
+
+<AccordionGroup>
+  <Accordion title="Verify the Source">
+    Validate that webhook requests are coming from Klivopay's IP addresses.
+  </Accordion>
+
+  <Accordion title="Use HTTPS">
+    Always use HTTPS URLs for your webhook endpoints.
+  </Accordion>
+
+  <Accordion title="Validate Signatures">
+    If available, verify webhook signatures to ensure authenticity.
+  </Accordion>
+
+  <Accordion title="Handle Duplicates">
+    Implement idempotency to handle duplicate webhook deliveries gracefully.
+  </Accordion>
+
+  <Accordion title="Respond Quickly">
+    Respond with 200 OK immediately, process the webhook asynchronously.
+  </Accordion>
+</AccordionGroup>
+
+## Testing Webhooks
+
+Use tools like ngrok to expose your local server for webhook testing:
+
+```bash
+ngrok http 3000
+```
+
+Then use the ngrok URL as your `postback_url`:
+
+```
+https://abc123.ngrok.io/webhooks/klivopay
+```
+
+## Webhook Retries
+
+<Info>
+  If your webhook endpoint returns a non-200 status code, Klivopay will retry the webhook delivery up to 3 times with exponential backoff.
+</Info>

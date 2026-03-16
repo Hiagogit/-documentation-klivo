@@ -1,0 +1,78 @@
+---
+title: 'Authentication'
+description: 'Learn how to authenticate your API requests'
+---
+
+## API Token Authentication
+
+All Klivopay API routes require authentication using an `api_token` query parameter.
+
+### Getting Your API Token
+
+1. Log in to your [Klivopay Dashboard](https://klivopay.com.br/dashboard)
+2. Navigate to **Settings** → **API Keys**
+3. Copy your API token
+
+<Warning>
+  Keep your API token secure! Never expose it in client-side code or public repositories.
+</Warning>
+
+### Using Your API Token
+
+Include your API token as a query parameter in every request:
+
+```bash
+GET /public/v1/products?api_token=YOUR_TOKEN_HERE
+```
+
+### Example Request
+
+```bash
+curl -X GET "https://api.klivopay.com.br/api/public/v1/products?api_token=YOUR_TOKEN_HERE" \
+  -H "Content-Type: application/json"
+```
+
+### Authentication Errors
+
+If authentication fails, you'll receive a `401 Unauthorized` response:
+
+```json
+{
+  "error": "Unauthorized",
+  "message": "Invalid API token"
+}
+```
+
+## Security Best Practices
+
+<AccordionGroup>
+  <Accordion title="Use Environment Variables">
+    Store your API token in environment variables, never hardcode it:
+
+    ```bash
+    export KLIVOPAY_API_TOKEN="your_token_here"
+    ```
+  </Accordion>
+
+  <Accordion title="Rotate Tokens Regularly">
+    Periodically generate new API tokens and rotate old ones to maintain security.
+  </Accordion>
+
+  <Accordion title="Use HTTPS Only">
+    All API requests must be made over HTTPS. HTTP requests will be rejected.
+  </Accordion>
+
+  <Accordion title="Limit Token Scope">
+    If available, use tokens with limited permissions for specific operations.
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<Card
+  title="Make Your First Request"
+  icon="rocket"
+  href="/quickstart"
+>
+  Follow our quickstart guide to make your first API call
+</Card>

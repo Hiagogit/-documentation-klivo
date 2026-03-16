@@ -1,0 +1,100 @@
+---
+title: 'Transactions'
+description: 'Process payments and manage transactions'
+---
+
+## Create Transaction
+
+<RequestExample>
+
+```bash cURL
+curl -X POST "https://api.klivopay.com.br/api/public/v1/transactions?api_token=YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "amount": 15000,
+    "offer_hash": "7becb",
+    "payment_method": "credit_card",
+    "customer": {
+      "name": "Customer Name",
+      "email": "email@email.com",
+      "phone_number": "21975784612",
+      "document": "09115751031"
+    },
+    "card": {
+      "number": "4111 1111 1111 1111",
+      "holder_name": "Card Holder",
+      "exp_month": 12,
+      "exp_year": 2025,
+      "cvv": "123"
+    },
+    "cart": [{
+      "product_hash": "abc123",
+      "title": "Product Name",
+      "price": 15000,
+      "quantity": 1
+    }],
+    "installments": 1
+  }'
+```
+
+</RequestExample>
+
+### Request Body
+
+<ParamField body="amount" type="integer" required>
+  Transaction amount in cents (e.g., 15000 = R$ 150.00)
+</ParamField>
+
+<ParamField body="payment_method" type="string" required>
+  Payment method: `credit_card` or `pix`
+</ParamField>
+
+<ParamField body="offer_hash" type="string" required>
+  Hash of the offer
+</ParamField>
+
+<ParamField body="customer" type="object" required>
+  Customer information
+</ParamField>
+
+<ParamField body="card" type="object">
+  Credit card details (required if payment_method is credit_card)
+</ParamField>
+
+<ParamField body="cart" type="array" required>
+  Array of cart items
+</ParamField>
+
+<ParamField body="installments" type="integer">
+  Number of installments (1-12)
+</ParamField>
+
+## List Transactions
+
+Get all transactions from your account.
+
+```bash
+GET /public/v1/transactions?api_token=YOUR_TOKEN
+```
+
+## Get Transaction
+
+Get a specific transaction by hash.
+
+```bash
+GET /public/v1/transactions/:hash?api_token=YOUR_TOKEN
+```
+
+## Refund Transaction
+
+Process a refund for a transaction.
+
+```bash
+POST /public/v1/transactions/:hash/refund?api_token=YOUR_TOKEN
+```
+
+### Refund Request Body
+
+<ParamField body="amount" type="integer">
+  Refund amount in cents (partial refund if less than original amount)
+</ParamField>
