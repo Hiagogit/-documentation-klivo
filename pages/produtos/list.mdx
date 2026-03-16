@@ -1,0 +1,62 @@
+---
+title: "Listar Produtos"
+api: "GET /public/v1/products"
+description: "Lista todos os produtos da sua conta"
+---
+
+# Listar Produtos
+
+Retorna uma lista de todos os produtos cadastrados na sua conta Klivopay.
+
+## Endpoint
+
+```
+GET https://api.klivopay.com.br/api/public/v1/products?api_token=SEU_TOKEN
+```
+
+## Exemplos de Requisição
+
+<CodeGroup>
+```bash cURL
+curl -X GET "https://api.klivopay.com.br/api/public/v1/products?api_token=SEU_TOKEN"
+```
+
+```javascript JavaScript
+const listProducts = async () => {
+  const response = await fetch(
+    'https://api.klivopay.com.br/api/public/v1/products?api_token=SEU_TOKEN'
+  );
+  return await response.json();
+};
+```
+
+```python Python
+import requests
+
+url = "https://api.klivopay.com.br/api/public/v1/products"
+params = {"api_token": "SEU_TOKEN"}
+
+response = requests.get(url, params=params)
+products = response.json()
+```
+</CodeGroup>
+
+## Resposta
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "hash": "7tjdfkshdv",
+      "title": "Curso de Desenvolvimento Web",
+      "product_type": "digital",
+      "amount": 49700,
+      "id_category": 1,
+      "category_name": "Tecnologia",
+      "status": "active",
+      "created_at": "2026-03-16T10:00:00Z"
+    }
+  ]
+}
+```

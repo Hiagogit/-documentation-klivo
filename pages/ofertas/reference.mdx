@@ -1,0 +1,82 @@
+---
+title: "Ofertas - Visão Geral"
+description: "Crie ofertas e promoções para seus produtos"
+---
+
+# Ofertas
+
+Ofertas permitem criar variações de preço para seus produtos, ideal para promoções, descontos e preços diferenciados.
+
+## O que são Ofertas?
+
+Uma oferta é uma variação de preço de um produto existente. Ela herda todas as características do produto pai (tipo, categoria, entrega) mas possui:
+
+- Hash único
+- Título próprio
+- Preço diferenciado
+- Imagem de capa própria (opcional)
+
+## Por que usar Ofertas?
+
+<CardGroup cols={2}>
+  <Card title="Promoções" icon="tag">
+    Crie ofertas com desconto mantendo o preço original do produto
+  </Card>
+
+  <Card title="Preços Diferenciados" icon="dollar-sign">
+    Ofereça o mesmo produto com diferentes preços para diferentes públicos
+  </Card>
+
+  <Card title="Testes A/B" icon="flask">
+    Teste diferentes preços para otimizar conversões
+  </Card>
+
+  <Card title="Lançamentos" icon="rocket">
+    Crie ofertas especiais para lançamentos
+  </Card>
+</CardGroup>
+
+## Endpoints Disponíveis
+
+<CardGroup cols={2}>
+  <Card title="Criar Oferta" icon="plus" href="/pages/ofertas/create">
+    `POST /products/:hash/offers`
+
+    Cria uma nova oferta para um produto
+  </Card>
+
+  <Card title="Atualizar Oferta" icon="pen" href="/pages/ofertas/update">
+    `PUT /products/:hash/offers`
+
+    Atualiza uma oferta existente
+  </Card>
+</CardGroup>
+
+## Estrutura de uma Oferta
+
+```json
+{
+  "hash": "7becb",
+  "product_hash": "7tjdfkshdv",
+  "title": "Oferta de Lançamento - 40% OFF",
+  "cover": "https://...",
+  "amount": 29700,
+  "created_at": "2026-03-16T10:00:00Z"
+}
+```
+
+## Exemplo de Uso
+
+<Steps>
+  <Step title="Criar Produto">
+    Crie o produto com valor cheio (R$ 497,00)
+  </Step>
+
+  <Step title="Criar Oferta">
+    Crie oferta promocional (R$ 297,00)
+  </Step>
+
+  <Step title="Processar Venda">
+    Use o `offer_hash` ao criar transações
+  </Step>
+</Steps>

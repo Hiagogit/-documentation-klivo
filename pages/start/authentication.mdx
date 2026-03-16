@@ -1,0 +1,406 @@
+---
+title: "Autenticação"
+description: "Aprenda como autenticar suas requisições na API Klivopay"
+---
+
+# Autenticação
+
+A API Klivopay utiliza autenticação via **API Token** para garantir a segurança das suas requisições. Todas as rotas (exceto checkout público) requerem autenticação.
+
+## Obtendo seu Token
+
+Para obter seu token de API:
+
+<Steps>
+  <Step title="Acesse o Dashboard">
+    Faça login no [Dashboard Klivopay](https://klivopay.com.br/dashboard)
+  </Step>
+
+  <Step title="Navegue até Configurações">
+    Acesse a seção de **Configurações** ou **API**
+  </Step>
+
+  <Step title="Copie seu Token">
+    Copie o token de API fornecido
+  </Step>
+</Steps>
+
+<Warning>
+  **Mantenha seu token seguro!** Nunca exponha seu token em código público, repositórios Git ou no frontend de aplicações.
+</Warning>
+
+## Como Autenticar
+
+A Klivopay utiliza autenticação via **query parameter**. Adicione o parâmetro `api_token` em todas as suas requisições.
+
+### Formato
+
+```
+https://api.klivopay.com.br/api/public/v1/{endpoint}?api_token=SEU_TOKEN_AQUI
+```
+
+### Exemplos
+
+<CodeGroup>
+```bash GET Request
+curl -X GET "https://api.klivopay.com.br/api/public/v1/products?api_token=SEU_TOKEN"
+```
+
+```bash POST Request
+curl -X POST "https://api.klivopay.com.br/api/public/v1/products?api_token=SEU_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Meu Produto",
+    "amount": 10000
+  }'
+```
+
+```bash PUT Request
+curl -X PUT "https://api.klivopay.com.br/api/public/v1/products/abc123?api_token=SEU_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Produto Atualizado"
+  }'
+```
+</CodeGroup>
+
+## Implementação em Diferentes Linguagens
+
+### JavaScript/Node.js
+
+<CodeGroup>
+```javascript Fetch API
+const API_TOKEN = 'seu_token_aqui';
+const BASE_URL = 'https://api.klivopay.com.br/api';
+
+async function getProducts() {
+  const response = await fetch(
+    `${BASE_URL}/public/v1/products?api_token=${API_TOKEN}`
+  );
+
+  if (!response.ok) {
+    throw new Error('Erro ao buscar produtos');
+  }
+
+  return await response.json();
+}
+```
+
+```javascript Axios
+const axios = require('axios');
+
+const API_TOKEN = 'seu_token_aqui';
+const BASE_URL = 'https://api.klivopay.com.br/api';
+
+const api = axios.create({
+  baseURL: BASE_URL,
+  params: {
+    api_token: API_TOKEN
+  }
+});
+
+// Uso
+async function getProducts() {
+  const { data } = await api.get('/public/v1/products');
+  return data;
+}
+```
+</CodeGroup>
+
+### Python
+
+<CodeGroup>
+```python Requests
+import requests
+
+API_TOKEN = 'seu_token_aqui'
+BASE_URL = 'https://api.klivopay.com.br/api'
+
+def get_products():
+    response = requests.get(
+        f'{BASE_URL}/public/v1/products',
+        params={'api_token': API_TOKEN}
+    )
+    response.raise_for_status()
+    return response.json()
+```
+
+```python Session
+import requests
+
+API_TOKEN = 'seu_token_aqui'
+BASE_URL = 'https://api.klivopay.com.br/api'
+
+session = requests.Session()
+session.params = {'api_token': API_TOKEN}
+
+def get_products():
+    response = session.get(f'{BASE_URL}/public/v1/products')
+    response.raise_for_status()
+    return response.json()
+```
+</CodeGroup>
+
+### PHP
+
+<CodeGroup>
+```php cURL
+<?php
+
+$apiToken = 'seu_token_aqui';
+$baseUrl = 'https://api.klivopay.com.br/api';
+
+function getProducts($apiToken, $baseUrl) {
+    $ch = curl_init();
+
+    curl_setopt_array($ch, [
+        CURLOPT_URL => "$baseUrl/public/v1/products?api_token=$apiToken",
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_HTTPHEADER => [
+            'Content-Type: application/json'
+        ]
+    ]);
+
+    $response = curl_exec($ch);
+    curl_close($ch);
+
+    return json_decode($response, true);
+}
+
+$products = getProducts($apiToken, $baseUrl);
+```
+
+```php Guzzle
+<?php
+
+use GuzzleHttp\Client;
+
+$apiToken = 'seu_token_aqui';
+$baseUrl = 'https://api.klivopay.com.br/api';
+
+$client = new Client([
+    'base_uri' => $baseUrl,
+    'query' => [
+        'api_token' => $apiToken
+    ]
+]);
+
+$response = $client->get('/public/v1/products');
+$products = json_decode($response->getBody(), true);
+```
+</CodeGroup>
+
+## Gerenciamento de Token
+
+### Armazenamento Seguro
+
+<Warning>
+  **Nunca exponha seu token!** Siga estas práticas de segurança:
+</Warning>
+
+<AccordionGroup>
+  <Accordion title="Use Variáveis de Ambiente">
+    Armazene o token em variáveis de ambiente, não no código.
+
+    ```bash .env
+    KLIVOPAY_API_TOKEN=seu_token_aqui
+    ```
+
+    ```javascript
+    const API_TOKEN = process.env.KLIVOPAY_API_TOKEN;
+    ```
+  </Accordion>
+
+  <Accordion title="Nunca Comite o Token">
+    Adicione arquivos de configuração ao `.gitignore`:
+
+    ```bash .gitignore
+    .env
+    .env.local
+    config/secrets.json
+    ```
+  </Accordion>
+
+  <Accordion title="Use Apenas no Backend">
+    Nunca inclua o token em código frontend:
+
+    ```javascript
+    // ❌ NUNCA FAÇA ISSO
+    const token = 'abc123'; // Exposto no navegador!
+
+    // ✅ FAÇA ISSO
+    // Chame um endpoint do seu backend que usa o token
+    ```
+  </Accordion>
+</AccordionGroup>
+
+### Rotação de Token
+
+Se você suspeitar que seu token foi comprometido:
+
+1. Acesse o Dashboard Klivopay
+2. Gere um novo token de API
+3. Atualize sua aplicação com o novo token
+4. Revogue o token antigo
+
+## Rotas Públicas (Sem Autenticação)
+
+Apenas a rota de inicialização de checkout **não requer** autenticação:
+
+```bash
+GET /public/v1/checkout/:hash
+```
+
+Esta rota é usada para carregar o checkout no navegador do cliente.
+
+## Erros de Autenticação
+
+### 401 Unauthorized
+
+Retornado quando o token está ausente ou inválido:
+
+<CodeGroup>
+```json Token Ausente
+{
+  "success": false,
+  "error": "API token is required",
+  "code": "MISSING_TOKEN"
+}
+```
+
+```json Token Inválido
+{
+  "success": false,
+  "error": "Invalid API token",
+  "code": "INVALID_TOKEN"
+}
+```
+</CodeGroup>
+
+### 403 Forbidden
+
+Retornado quando o token é válido mas não tem permissão:
+
+```json
+{
+  "success": false,
+  "error": "Access denied to this resource",
+  "code": "FORBIDDEN"
+}
+```
+
+## Testando Autenticação
+
+Teste se seu token está funcionando corretamente:
+
+<CodeGroup>
+```bash cURL
+curl -X GET "https://api.klivopay.com.br/api/public/v1/me?api_token=SEU_TOKEN"
+```
+
+```json Resposta de Sucesso
+{
+  "success": true,
+  "data": {
+    "id": 12345,
+    "name": "Sua Empresa",
+    "email": "contato@empresa.com",
+    "account_status": "active"
+  }
+}
+```
+</CodeGroup>
+
+## Boas Práticas
+
+<AccordionGroup>
+  <Accordion title="Use HTTPS Sempre">
+    Todas as requisições devem usar HTTPS para criptografar o token em trânsito.
+
+    ```bash
+    # ✅ Correto
+    https://api.klivopay.com.br/api/...
+
+    # ❌ Incorreto
+    http://api.klivopay.com.br/api/...
+    ```
+  </Accordion>
+
+  <Accordion title="Configure Timeouts">
+    Defina timeouts adequados para evitar requisições travadas:
+
+    ```javascript
+    const response = await fetch(url, {
+      timeout: 30000 // 30 segundos
+    });
+    ```
+  </Accordion>
+
+  <Accordion title="Implemente Retry Logic">
+    Adicione lógica de retry para falhas temporárias:
+
+    ```javascript
+    async function requestWithRetry(url, options, maxRetries = 3) {
+      for (let i = 0; i < maxRetries; i++) {
+        try {
+          const response = await fetch(url, options);
+          if (response.ok) return response;
+        } catch (error) {
+          if (i === maxRetries - 1) throw error;
+          await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
+        }
+      }
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="Log Requisições (Sem Token)">
+    Ao fazer log de requisições, **nunca** registre o token:
+
+    ```javascript
+    // ❌ NUNCA
+    console.log('Request:', url); // Contém api_token
+
+    // ✅ FAÇA ISSO
+    const urlWithoutToken = url.replace(/api_token=[^&]+/, 'api_token=***');
+    console.log('Request:', urlWithoutToken);
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Rate Limiting
+
+A Klivopay pode implementar limites de taxa (rate limiting):
+
+- **Recomendação**: Não exceda 100 requisições por minuto
+- **Header de Resposta**: Verifique headers `X-RateLimit-*` (quando disponíveis)
+- **Erro 429**: Se exceder o limite, aguarde antes de tentar novamente
+
+```javascript
+if (response.status === 429) {
+  const retryAfter = response.headers.get('Retry-After');
+  console.log(`Rate limited. Retry after ${retryAfter} seconds`);
+}
+```
+
+## Próximos Passos
+
+Agora que você sabe como autenticar, explore:
+
+<CardGroup cols={2}>
+  <Card title="Guia Rápido" icon="rocket" href="/pages/start/quickstart">
+    Faça sua primeira integração
+  </Card>
+
+  <Card title="Criar Transação" icon="credit-card" href="/pages/transacoes/create">
+    Processe seu primeiro pagamento
+  </Card>
+
+  <Card title="Webhooks" icon="webhook" href="/pages/start/webhooks">
+    Configure notificações automáticas
+  </Card>
+
+  <Card title="Códigos de Erro" icon="bug" href="/pages/reference/errors">
+    Entenda os erros da API
+  </Card>
+</CardGroup>

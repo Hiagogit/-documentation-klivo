@@ -1,0 +1,51 @@
+/* Klivopay Custom Styles */
+
+:root {
+  --primary-color: #0D9373;
+  --primary-light: #07C983;
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Code blocks styling */
+pre {
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Custom card hover effects */
+.mintlify-card:hover {
+  transform: translateY(-2px);
+  transition: transform 0.2s ease;
+}
+
+/* API endpoint badges */
+.api-method {
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.875rem;
+}
+
+.api-method-get {
+  background-color: #10b981;
+  color: white;
+}
+
+.api-method-post {
+  background-color: #3b82f6;
+  color: white;
+}
+
+.api-method-put {
+  background-color: #f59e0b;
+  color: white;
+}
+
+.api-method-delete {
+  background-color: #ef4444;
+  color: white;
+}

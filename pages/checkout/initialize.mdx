@@ -1,0 +1,66 @@
+---
+title: "Inicializar Checkout"
+api: "GET /public/v1/checkout/:hash"
+description: "Carrega os dados de um checkout"
+---
+
+# Inicializar Checkout
+
+Retorna os dados de um checkout para exibição ao cliente.
+
+## Endpoint
+
+```
+GET https://api.klivopay.com.br/api/public/v1/checkout/:hash
+```
+
+<Note>
+  Esta rota **não requer** o parâmetro `api_token`.
+</Note>
+
+## Parâmetros de URL
+
+<ParamField path="hash" type="string" required>
+  Hash do checkout
+</ParamField>
+
+## Exemplos de Requisição
+
+<CodeGroup>
+```bash cURL
+curl -X GET "https://api.klivopay.com.br/api/public/v1/checkout/abc123xyz"
+```
+
+```javascript JavaScript
+const loadCheckout = async (hash) => {
+  const response = await fetch(
+    `https://api.klivopay.com.br/api/public/v1/checkout/${hash}`
+  );
+  return await response.json();
+};
+```
+</CodeGroup>
+
+## Resposta
+
+```json
+{
+  "success": true,
+  "data": {
+    "hash": "abc123xyz",
+    "product": {
+      "title": "Curso de Desenvolvimento Web",
+      "cover": "https://...",
+      "amount": 49700
+    },
+    "offer": {
+      "title": "Oferta de Lançamento",
+      "amount": 29700
+    },
+    "seller": {
+      "name": "Sua Empresa",
+      "logo": "https://..."
+    }
+  }
+}
+```

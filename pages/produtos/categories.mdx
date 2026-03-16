@@ -1,0 +1,62 @@
+---
+title: "Categorias de Produtos"
+api: "GET /public/v1/products/categories"
+description: "Lista todas as categorias de produtos disponíveis"
+---
+
+# Categorias de Produtos
+
+Retorna a lista completa de categorias disponíveis para classificar produtos.
+
+## Endpoint
+
+```
+GET https://api.klivopay.com.br/api/public/v1/products/categories?api_token=SEU_TOKEN
+```
+
+## Exemplos de Requisição
+
+<CodeGroup>
+```bash cURL
+curl -X GET "https://api.klivopay.com.br/api/public/v1/products/categories?api_token=SEU_TOKEN"
+```
+
+```javascript JavaScript
+const getCategories = async () => {
+  const response = await fetch(
+    'https://api.klivopay.com.br/api/public/v1/products/categories?api_token=SEU_TOKEN'
+  );
+  return await response.json();
+};
+```
+</CodeGroup>
+
+## Resposta
+
+```json
+{
+  "success": true,
+  "data": [
+    { "id": 1, "name": "Tecnologia" },
+    { "id": 2, "name": "Marketing" },
+    { "id": 3, "name": "Design" },
+    { "id": 4, "name": "Negócios" },
+    { "id": 5, "name": "Saúde e Fitness" },
+    { "id": 6, "name": "Educação" },
+    { "id": 7, "name": "Outros" }
+  ]
+}
+```
+
+## Usando Categorias
+
+Use o `id` da categoria ao criar produtos:
+
+```json
+{
+  "title": "Curso de React",
+  "id_category": 1,
+  "product_type": "digital",
+  "amount": 49700
+}
+```

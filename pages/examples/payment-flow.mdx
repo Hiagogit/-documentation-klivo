@@ -1,0 +1,259 @@
+---
+title: "Fluxo de Pagamento Completo"
+description: "Exemplo completo de integração do início ao fim"
+---
+
+# Fluxo de Pagamento Completo
+
+Este exemplo demonstra um fluxo completo de pagamento, desde a criação do produto até o recebimento do webhook de confirmação.
+
+## Arquitetura do Fluxo
+
+<Steps>
+  <Step title="Criar Produto">
+    Cadastrar produto na Klivopay
+  </Step>
+
+  <Step title="Criar Oferta">
+    Criar oferta promocional (opcional)
+  </Step>
+
+  <Step title="Processar Pagamento">
+    Cliente realiza pagamento via API
+  </Step>
+
+  <Step title="Receber Webhook">
+    Sistema recebe confirmação de pagamento
+  </Step>
+
+  <Step title="Liberar Acesso">
+    Conceder acesso ao produto
+  </Step>
+</Steps>
+
+## Implementação Completa (Node.js)
+
+```javascript
+const express = require('express');
+const axios = require('axios');
+
+const app = express();
+app.use(express.json());
+
+const KLIVOPAY_API = 'https://api.klivopay.com.br/api';
+const API_TOKEN = process.env.KLIVOPAY_TOKEN;
+
+// 1. Criar Produto
+async function createProduct() {
+  const { data } = await axios.post(
+    `${KLIVOPAY_API}/public/v1/products`,
+    {
+      title: 'Curso de Desenvolvimento Web',
+      product_type: 'digital',
+      delivery_type: 1,
+      id_category: 1,
+      amount: 49700
+    },
+    { params: { api_token: API_TOKEN } }
+  );
+
+  console.log('Produto criado:', data.data.hash);
+  return data.data;
+}
+
+// 2. Criar Oferta
+async function createOffer(productHash) {
+  const { data } = await axios.post(
+    `${KLIVOPAY_API}/public/v1/products/${productHash}/offers`,
+    {
+      title: 'Oferta de Lançamento - 40% OFF',
+      amount: 29700
+    },
+    { params: { api_token: API_TOKEN } }
+  );
+
+  console.log('Oferta criada:', data.data.hash);
+  return data.data;
+}
+
+// 3. Processar Pagamento
+async function processPayment(offerHash, customerData) {
+  const { data } = await axios.post(
+    `${KLIVOPAY_API}/public/v1/transactions`,
+    {
+      amount: 29700,
+      offer_hash: offerHash,
+      payment_method: 'credit_card',
+      card: {
+        number: customerData.card.number,
+        holder_name: customerData.card.holder_name,
+        exp_month: customerData.card.exp_month,
+        exp_year: customerData.card.exp_year,
+        cvv: customerData.card.cvv
+      },
+      customer: customerData.customer,
+      cart: [
+        {
+          product_hash: offerHash,
+          title: 'Curso de Desenvolvimento Web',
+          price: 29700,
+          quantity: 1,
+          operation_type: 1,
+          tangible: false
+        }
+      ],
+      installments: 1,
+      transaction_origin: 'api',
+      postback_url: 'https://seu-dominio.com/webhook/klivopay'
+    },
+    { params: { api_token: API_TOKEN } }
+  );
+
+  console.log('Transação criada:', data.data.hash);
+  return data.data;
+}
+
+// 4. Endpoint de Webhook
+app.post('/webhook/klivopay', async (req, res) => {
+  try {
+    const { transaction_hash, status, customer } = req.body;
+
+    console.log(`Webhook recebido: ${transaction_hash} - Status: ${status}`);
+
+    // Verificar com a API
+    const { data } = await axios.get(
+      `${KLIVOPAY_API}/public/v1/transactions/${transaction_hash}`,
+      { params: { api_token: API_TOKEN } }
+    );
+
+    if (data.data.status !== status) {
+      return res.status(400).send('Status mismatch');
+    }
+
+    // Processar baseado no status
+    if (status === 'paid') {
+      await grantAccess(customer.email);
+      await sendConfirmationEmail(customer.email);
+      console.log(`Acesso liberado para: ${customer.email}`);
+    } else if (status === 'refunded') {
+      await revokeAccess(customer.email);
+      console.log(`Acesso revogado para: ${customer.email}`);
+    }
+
+    res.status(200).send('OK');
+
+  } catch (error) {
+    console.error('Webhook error:', error);
+    res.status(500).send('Error');
+  }
+});
+
+// 5. Liberar Acesso
+async function grantAccess(email) {
+  // Implementar lógica de liberação de acesso
+  console.log(`Liberando acesso para: ${email}`);
+  // Ex: Adicionar usuário ao curso no seu sistema
+}
+
+// 6. Revogar Acesso
+async function revokeAccess(email) {
+  // Implementar lógica de revogação de acesso
+  console.log(`Revogando acesso de: ${email}`);
+  // Ex: Remover usuário do curso no seu sistema
+}
+
+// 7. Enviar Email de Confirmação
+async function sendConfirmationEmail(email) {
+  console.log(`Enviando email de confirmação para: ${email}`);
+  // Implementar envio de email
+}
+
+// Iniciar servidor
+app.listen(3000, () => {
+  console.log('Servidor rodando na porta 3000');
+});
+
+// Executar fluxo completo (exemplo)
+async function runCompleteFlow() {
+  try {
+    // 1. Criar produto
+    const product = await createProduct();
+
+    // 2. Criar oferta
+    const offer = await createOffer(product.hash);
+
+    // 3. Simular pagamento de cliente
+    const customerData = {
+      card: {
+        number: '4111111111111111',
+        holder_name: 'JOAO SILVA',
+        exp_month: 12,
+        exp_year: 2028,
+        cvv: '123'
+      },
+      customer: {
+        name: 'João Silva',
+        email: 'joao@email.com',
+        phone_number: '21987654321',
+        document: '12345678900',
+        street_name: 'Rua das Flores',
+        number: '123',
+        neighborhood: 'Centro',
+        city: 'Rio de Janeiro',
+        state: 'RJ',
+        zip_code: '20000000'
+      }
+    };
+
+    const transaction = await processPayment(offer.hash, customerData);
+
+    console.log('Fluxo completo executado com sucesso!');
+    console.log('Transação:', transaction.hash);
+
+  } catch (error) {
+    console.error('Erro no fluxo:', error.response?.data || error.message);
+  }
+}
+
+// Descomentar para executar
+// runCompleteFlow();
+```
+
+## Pontos Importantes
+
+<AccordionGroup>
+  <Accordion title="Segurança">
+    - Nunca exponha o token de API
+    - Use variáveis de ambiente
+    - Valide webhooks consultando a API
+  </Accordion>
+
+  <Accordion title="Tratamento de Erros">
+    - Implemente try/catch em todas as chamadas
+    - Retorne 200 OK no webhook mesmo em caso de erro interno
+    - Faça log de todos os erros
+  </Accordion>
+
+  <Accordion title="Idempotência">
+    - Verifique se o webhook já foi processado
+    - Evite processar duas vezes o mesmo evento
+  </Accordion>
+
+  <Accordion title="Performance">
+    - Retorne 200 OK rapidamente no webhook
+    - Processe tarefas pesadas de forma assíncrona
+    - Use filas (Redis, RabbitMQ) para produção
+  </Accordion>
+</AccordionGroup>
+
+## Próximos Passos
+
+<CardGroup cols={2}>
+  <Card title="Pagamento PIX" icon="qrcode" href="/pages/examples/pix-payment">
+    Veja exemplo específico de PIX
+  </Card>
+
+  <Card title="Webhooks" icon="webhook" href="/pages/start/webhooks">
+    Documentação completa de webhooks
+  </Card>
+</CardGroup>

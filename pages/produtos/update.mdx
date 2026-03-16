@@ -1,0 +1,74 @@
+---
+title: "Atualizar Produto"
+api: "PUT /public/v1/products/:hash"
+description: "Atualiza os dados de um produto existente"
+---
+
+# Atualizar Produto
+
+Atualiza as informações de um produto já cadastrado.
+
+## Endpoint
+
+```
+PUT https://api.klivopay.com.br/api/public/v1/products/:hash?api_token=SEU_TOKEN
+```
+
+## Parâmetros do Body
+
+<ParamField body="title" type="string">
+  Novo título do produto
+</ParamField>
+
+<ParamField body="cover" type="string">
+  Nova URL da imagem de capa
+</ParamField>
+
+<ParamField body="sale_page" type="string">
+  Nova URL da página de vendas
+</ParamField>
+
+<ParamField body="amount" type="integer">
+  Novo valor em centavos
+</ParamField>
+
+## Exemplos de Requisição
+
+<CodeGroup>
+```bash cURL
+curl -X PUT "https://api.klivopay.com.br/api/public/v1/products/7tjdfkshdv?api_token=SEU_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Curso de Desenvolvimento Web - Atualizado",
+    "amount": 39700
+  }'
+```
+
+```javascript JavaScript
+const updateProduct = async (hash, updates) => {
+  const response = await fetch(
+    `https://api.klivopay.com.br/api/public/v1/products/${hash}?api_token=SEU_TOKEN`,
+    {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updates)
+    }
+  );
+  return await response.json();
+};
+```
+</CodeGroup>
+
+## Resposta
+
+```json
+{
+  "success": true,
+  "data": {
+    "hash": "7tjdfkshdv",
+    "title": "Curso de Desenvolvimento Web - Atualizado",
+    "amount": 39700,
+    "updated_at": "2026-03-16T15:00:00Z"
+  }
+}
+```

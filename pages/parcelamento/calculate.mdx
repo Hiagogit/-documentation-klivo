@@ -1,0 +1,100 @@
+---
+title: "Calcular Parcelamento"
+api: "GET /public/v1/installments"
+description: "Calcula os valores de parcelamento com juros"
+---
+
+# Calcular Parcelamento
+
+Calcula as opções de parcelamento disponíveis para um determinado valor, incluindo juros.
+
+## Endpoint
+
+```
+GET https://api.klivopay.com.br/api/public/v1/installments?api_token=SEU_TOKEN&amount=VALOR&interest_type=TIPO
+```
+
+## Parâmetros de Query
+
+<ParamField query="api_token" type="string" required>
+  Token de autenticação da API
+</ParamField>
+
+<ParamField query="amount" type="integer" required>
+  Valor em centavos para calcular parcelamento
+</ParamField>
+
+<ParamField query="interest_type" type="string" required>
+  Tipo de juros: `"simple"` ou `"compound"`
+</ParamField>
+
+## Exemplos de Requisição
+
+<CodeGroup>
+```bash Juros Simples
+curl -X GET "https://api.klivopay.com.br/api/public/v1/installments?api_token=SEU_TOKEN&amount=10000&interest_type=simple"
+```
+
+```bash Juros Compostos
+curl -X GET "https://api.klivopay.com.br/api/public/v1/installments?api_token=SEU_TOKEN&amount=10000&interest_type=compound"
+```
+
+```javascript JavaScript
+const calculateInstallments = async (amount, interestType = 'simple') => {
+  const params = new URLSearchParams({
+    api_token: 'SEU_TOKEN',
+    amount: amount,
+    interest_type: interestType
+  });
+
+  const response = await fetch(
+    `https://api.klivopay.com.br/api/public/v1/installments?${params}`
+  );
+
+  return await response.json();
+};
+
+// Uso
+const installments = await calculateInstallments(10000, 'simple');
+```
+</CodeGroup>
+
+## Resposta
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "installments": 1,
+      "installment_amount": 10000,
+      "total_amount": 10000,
+      "interest_rate": 0
+    },
+    {
+      "installments": 2,
+      "installment_amount": 5250,
+      "total_amount": 10500,
+      "interest_rate": 5
+    },
+    {
+      "installments": 3,
+      "installment_amount": 3533,
+      "total_amount": 10599,
+      "interest_rate": 5.99
+    }
+  ]
+}
+```
+
+## Exibindo para o Cliente
+
+```javascript
+function displayInstallments(installments) {
+  return installments.map(option => ({
+    label: `${option.installments}x de R$ ${(option.installment_amount / 100).toFixed(2)}`,
+    value: option.installments,
+    total: `Total: R$ ${(option.total_amount / 100).toFixed(2)}`
+  }));
+}
+```

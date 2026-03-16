@@ -1,0 +1,59 @@
+---
+title: "Parcelamento - Visão Geral"
+description: "Calcule parcelas para pagamentos com cartão de crédito"
+---
+
+# Parcelamento
+
+O sistema de parcelamento permite calcular os valores de parcelas com juros simples ou compostos para pagamentos com cartão de crédito.
+
+## Como Funciona
+
+A Klivopay permite parcelamento em até **12x** para pagamentos com cartão de crédito, com opção de juros simples ou compostos.
+
+## Características
+
+- **Parcelas**: De 1x a 12x
+- **Tipos de Juros**: Simples ou compostos
+- **Cálculo Automático**: API retorna todos os valores calculados
+- **Transparência**: Cliente vê valor de cada parcela antes de pagar
+
+## Endpoint Disponível
+
+<Card title="Calcular Parcelamento" icon="calculator" href="/pages/parcelamento/calculate">
+  `GET /installments`
+
+  Calcula os valores de parcelamento com juros
+</Card>
+
+## Tipos de Juros
+
+### Juros Simples
+
+Juros calculados sobre o valor original:
+
+```
+Valor Final = Valor Original + (Valor Original × Taxa × Parcelas)
+```
+
+### Juros Compostos
+
+Juros calculados sobre o montante acumulado:
+
+```
+Valor Final = Valor Original × (1 + Taxa)^Parcelas
+```
+
+## Exemplo de Uso
+
+```javascript
+// Consultar parcelas disponíveis
+const installments = await fetch(
+  'https://api.klivopay.com.br/api/public/v1/installments?api_token=TOKEN&amount=10000&interest_type=simple'
+);
+
+// Exibir opções para o cliente
+installments.data.forEach(option => {
+  console.log(`${option.installments}x de R$ ${option.installment_amount / 100}`);
+});
+```

@@ -1,0 +1,283 @@
+---
+title: "SDKs e Bibliotecas"
+description: "Wrappers e bibliotecas para facilitar a integração"
+---
+
+# SDKs e Bibliotecas
+
+Embora a API Klivopay seja REST e simples de usar diretamente, você pode criar wrappers para facilitar a integração.
+
+## Wrapper Node.js
+
+```javascript
+// klivopay-client.js
+const axios = require('axios');
+
+class KlivopayClient {
+  constructor(apiToken) {
+    this.apiToken = apiToken;
+    this.baseURL = 'https://api.klivopay.com.br/api';
+    this.client = axios.create({
+      baseURL: this.baseURL,
+      params: { api_token: this.apiToken }
+    });
+  }
+
+  // Produtos
+  async createProduct(data) {
+    const response = await this.client.post('/public/v1/products', data);
+    return response.data;
+  }
+
+  async listProducts() {
+    const response = await this.client.get('/public/v1/products');
+    return response.data;
+  }
+
+  async getProduct(hash) {
+    const response = await this.client.get(`/public/v1/products/${hash}`);
+    return response.data;
+  }
+
+  async updateProduct(hash, data) {
+    const response = await this.client.put(`/public/v1/products/${hash}`, data);
+    return response.data;
+  }
+
+  // Ofertas
+  async createOffer(productHash, data) {
+    const response = await this.client.post(
+      `/public/v1/products/${productHash}/offers`,
+      data
+    );
+    return response.data;
+  }
+
+  // Transações
+  async createTransaction(data) {
+    const response = await this.client.post('/public/v1/transactions', data);
+    return response.data;
+  }
+
+  async listTransactions(filters = {}) {
+    const response = await this.client.get('/public/v1/transactions', {
+      params: filters
+    });
+    return response.data;
+  }
+
+  async getTransaction(hash) {
+    const response = await this.client.get(`/public/v1/transactions/${hash}`);
+    return response.data;
+  }
+
+  async refundTransaction(hash, amount = null) {
+    const response = await this.client.post(
+      `/public/v1/transactions/${hash}/refund`,
+      amount ? { amount } : {}
+    );
+    return response.data;
+  }
+
+  // Parcelamento
+  async calculateInstallments(amount, interestType = 'simple') {
+    const response = await this.client.get('/public/v1/installments', {
+      params: { amount, interest_type: interestType }
+    });
+    return response.data;
+  }
+
+  // Categorias
+  async getCategories() {
+    const response = await this.client.get('/public/v1/products/categories');
+    return response.data;
+  }
+
+  // Conta
+  async getAccount() {
+    const response = await this.client.get('/public/v1/me');
+    return response.data;
+  }
+}
+
+module.exports = KlivopayClient;
+```
+
+## Uso do Wrapper
+
+```javascript
+const KlivopayClient = require('./klivopay-client');
+
+const klivopay = new KlivopayClient(process.env.KLIVOPAY_TOKEN);
+
+// Criar produto
+const product = await klivopay.createProduct({
+  title: 'Curso de React',
+  product_type: 'digital',
+  amount: 49700,
+  id_category: 1,
+  delivery_type: 1
+});
+
+// Criar transação
+const transaction = await klivopay.createTransaction({
+  amount: 49700,
+  payment_method: 'pix',
+  customer: {
+    name: 'João Silva',
+    email: 'joao@email.com',
+    document: '12345678900',
+    phone_number: '21987654321'
+  },
+  cart: [{
+    product_hash: product.data.hash,
+    title: product.data.title,
+    price: product.data.amount,
+    quantity: 1
+  }]
+});
+```
+
+## Wrapper Python
+
+```python
+import requests
+
+class KlivopayClient:
+    def __init__(self, api_token):
+        self.api_token = api_token
+        self.base_url = 'https://api.klivopay.com.br/api'
+
+    def _request(self, method, endpoint, data=None, params=None):
+        url = f'{self.base_url}{endpoint}'
+        params = params or {}
+        params['api_token'] = self.api_token
+
+        response = requests.request(
+            method,
+            url,
+            json=data,
+            params=params
+        )
+        response.raise_for_status()
+        return response.json()
+
+    # Produtos
+    def create_product(self, data):
+        return self._request('POST', '/public/v1/products', data=data)
+
+    def list_products(self):
+        return self._request('GET', '/public/v1/products')
+
+    def get_product(self, hash):
+        return self._request('GET', f'/public/v1/products/{hash}')
+
+    # Transações
+    def create_transaction(self, data):
+        return self._request('POST', '/public/v1/transactions', data=data)
+
+    def get_transaction(self, hash):
+        return self._request('GET', f'/public/v1/transactions/{hash}')
+
+    def refund_transaction(self, hash, amount=None):
+        data = {'amount': amount} if amount else {}
+        return self._request('POST', f'/public/v1/transactions/{hash}/refund', data=data)
+
+# Uso
+klivopay = KlivopayClient('seu_token_aqui')
+
+product = klivopay.create_product({
+    'title': 'Curso de Python',
+    'product_type': 'digital',
+    'amount': 39700,
+    'id_category': 1,
+    'delivery_type': 1
+})
+```
+
+## Wrapper PHP
+
+```php
+<?php
+
+class KlivopayClient {
+    private $apiToken;
+    private $baseUrl = 'https://api.klivopay.com.br/api';
+
+    public function __construct($apiToken) {
+        $this->apiToken = $apiToken;
+    }
+
+    private function request($method, $endpoint, $data = null) {
+        $url = $this->baseUrl . $endpoint;
+        $url .= '?api_token=' . $this->apiToken;
+
+        $ch = curl_init($url);
+
+        curl_setopt_array($ch, [
+            CURLOPT_CUSTOMREQUEST => $method,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_HTTPHEADER => ['Content-Type: application/json']
+        ]);
+
+        if ($data !== null) {
+            curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+        }
+
+        $response = curl_exec($ch);
+        curl_close($ch);
+
+        return json_decode($response, true);
+    }
+
+    // Produtos
+    public function createProduct($data) {
+        return $this->request('POST', '/public/v1/products', $data);
+    }
+
+    public function listProducts() {
+        return $this->request('GET', '/public/v1/products');
+    }
+
+    // Transações
+    public function createTransaction($data) {
+        return $this->request('POST', '/public/v1/transactions', $data);
+    }
+
+    public function getTransaction($hash) {
+        return $this->request('GET', "/public/v1/transactions/{$hash}");
+    }
+}
+
+// Uso
+$klivopay = new KlivopayClient('seu_token_aqui');
+
+$product = $klivopay->createProduct([
+    'title' => 'Curso de PHP',
+    'product_type' => 'digital',
+    'amount' => 34700,
+    'id_category' => 1,
+    'delivery_type' => 1
+]);
+```
+
+## Recursos Adicionais
+
+<CardGroup cols={2}>
+  <Card title="Repositório GitHub" icon="github">
+    Contribua com SDKs open source para a comunidade
+  </Card>
+
+  <Card title="Exemplos" icon="code" href="/pages/examples/overview">
+    Mais exemplos de integração
+  </Card>
+</CardGroup>
+
+## Contribuindo
+
+Criou um SDK? Compartilhe com a comunidade:
+
+1. Publique no GitHub
+2. Adicione documentação
+3. Publique no NPM/PyPI/Packagist
+4. Entre em contato para incluir na documentação oficial

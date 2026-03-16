@@ -1,0 +1,211 @@
+---
+title: "Introdução"
+description: "Conheça a API Klivopay e seus principais conceitos"
+---
+
+# Introdução à API Klivopay
+
+A API Klivopay permite que você integre soluções de pagamento em sua aplicação de forma simples e segura. Com ela, você pode processar pagamentos, gerenciar produtos, criar ofertas e muito mais.
+
+## Visão Geral
+
+A Klivopay é uma plataforma de pagamentos focada em produtos digitais e físicos, oferecendo:
+
+- **Processamento de Pagamentos**: PIX e Cartão de Crédito
+- **Gestão de Produtos**: Cadastro e gerenciamento de produtos
+- **Ofertas Flexíveis**: Criação de ofertas e promoções
+- **Webhooks**: Notificações em tempo real
+- **Parcelamento**: Cálculo automático de parcelas
+
+## Arquitetura da API
+
+A API Klivopay é construída seguindo os princípios REST:
+
+- **URLs previsíveis** baseadas em recursos
+- **Códigos de status HTTP** padrão
+- **Autenticação via token** simples e segura
+- **Formato JSON** para requisições e respostas
+
+### Base URL
+
+```
+https://api.klivopay.com.br/api
+```
+
+### Versionamento
+
+Todas as rotas públicas seguem o padrão:
+
+```
+/public/v1/{recurso}
+```
+
+A versão atual é a **v1**.
+
+## Conceitos Principais
+
+### Produtos
+
+Produtos são os itens que você vende através da Klivopay. Podem ser digitais (cursos, ebooks) ou físicos (livros, camisetas).
+
+**Características:**
+- Identificados por um `hash` único
+- Possuem título, capa, categoria e valor
+- Podem ter múltiplas ofertas associadas
+
+### Ofertas
+
+Ofertas são variações de preço de um produto. Permitem criar promoções e preços diferenciados.
+
+**Características:**
+- Vinculadas a um produto específico
+- Possuem título, capa e valor próprios
+- Identificadas por um `hash` único
+
+### Transações
+
+Transações representam pagamentos processados pela Klivopay.
+
+**Características:**
+- Suportam PIX e Cartão de Crédito
+- Podem ser parceladas (cartão)
+- Possuem status de acompanhamento
+- Identificadas por um `hash` único
+
+### Carrinho (Cart)
+
+O carrinho contém os itens da compra. Cada item possui:
+
+- Hash do produto
+- Título e imagem
+- Preço e quantidade
+- Tipo de operação
+
+## Fluxo Básico de Pagamento
+
+<Steps>
+  <Step title="Criar Produto">
+    Cadastre o produto que será vendido através do endpoint `POST /products`.
+  </Step>
+
+  <Step title="Criar Oferta (Opcional)">
+    Crie uma oferta com preço promocional via `POST /products/:hash/offers`.
+  </Step>
+
+  <Step title="Processar Transação">
+    Envie os dados do pagamento e cliente via `POST /transactions`.
+  </Step>
+
+  <Step title="Receber Webhook">
+    Sua aplicação recebe notificações de atualização de status.
+  </Step>
+
+  <Step title="Confirmar Pagamento">
+    Consulte o status da transação via `GET /transactions/:hash`.
+  </Step>
+</Steps>
+
+## Formato de Dados
+
+### Valores Monetários
+
+Todos os valores monetários na API são representados em **centavos** (integers).
+
+<CodeGroup>
+```json Exemplo
+{
+  "amount": 10000  // R$ 100,00
+}
+```
+
+```json Conversão
+// R$ 497,00 = 49700 centavos
+{
+  "product_amount": 49700
+}
+```
+</CodeGroup>
+
+### Identificadores
+
+A Klivopay utiliza **hashes** como identificadores únicos de recursos, não IDs numéricos.
+
+```json
+{
+  "product_hash": "7tjdfkshdv",
+  "offer_hash": "7becb",
+  "transaction_hash": "abc123xyz"
+}
+```
+
+### Datas
+
+Datas seguem o formato ISO 8601:
+
+```json
+{
+  "created_at": "2026-03-16T10:30:00Z"
+}
+```
+
+## Tipos de Produto
+
+A Klivopay suporta dois tipos de produtos:
+
+<CardGroup cols={2}>
+  <Card title="Produtos Digitais" icon="laptop">
+    Cursos, ebooks, softwares, etc.
+
+    `product_type: "digital"`
+  </Card>
+
+  <Card title="Produtos Físicos" icon="box">
+    Livros, camisetas, kits, etc.
+
+    `product_type: "fisico"`
+  </Card>
+</CardGroup>
+
+## Métodos de Pagamento
+
+### PIX
+
+Pagamentos instantâneos via PIX com geração de QR Code.
+
+**Características:**
+- Aprovação instantânea
+- Sem parcelamento
+- Expira em N dias (configurável)
+
+### Cartão de Crédito
+
+Pagamentos com cartão de crédito com suporte a parcelamento.
+
+**Características:**
+- Parcelamento em até 12x
+- Juros simples ou compostos
+- Aprovação em tempo real
+
+## Ambientes
+
+A Klivopay opera em ambiente de **produção**:
+
+- **Base URL**: `https://api.klivopay.com.br/api`
+- **Não há ambiente de sandbox público**
+- Recomenda-se usar valores baixos para testes
+
+<Warning>
+  Todas as transações são processadas em ambiente real. Use valores pequenos durante o desenvolvimento.
+</Warning>
+
+## Próximos Passos
+
+<CardGroup cols={2}>
+  <Card title="Autenticação" icon="key" href="/pages/start/authentication">
+    Aprenda como autenticar suas requisições
+  </Card>
+
+  <Card title="Guia Rápido" icon="rocket" href="/pages/start/quickstart">
+    Faça sua primeira integração
+  </Card>
+</CardGroup>

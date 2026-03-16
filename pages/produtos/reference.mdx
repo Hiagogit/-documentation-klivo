@@ -1,0 +1,366 @@
+---
+title: "Produtos - Visão Geral"
+description: "Gerencie produtos digitais e físicos na Klivopay"
+---
+
+# Produtos
+
+Produtos são os itens que você vende através da Klivopay. Podem ser digitais (cursos, ebooks, softwares) ou físicos (livros, camisetas, kits).
+
+## O que são Produtos?
+
+Um produto representa um item vendável na plataforma. Cada produto possui:
+
+- Identificador único (hash)
+- Título e imagem de capa
+- Categoria
+- Tipo (digital ou físico)
+- Valor base
+- Configurações de entrega
+- Ofertas associadas (opcionais)
+
+## Tipos de Produtos
+
+<CardGroup cols={2}>
+  <Card title="Produtos Digitais" icon="laptop">
+    Entregues online através da plataforma
+
+    **Exemplos:**
+    - Cursos online
+    - Ebooks
+    - Softwares
+    - Templates
+    - Assinaturas digitais
+  </Card>
+
+  <Card title="Produtos Físicos" icon="box">
+    Produtos tangíveis que requerem envio
+
+    **Exemplos:**
+    - Livros impressos
+    - Camisetas
+    - Kits físicos
+    - Materiais didáticos
+    - Equipamentos
+  </Card>
+</CardGroup>
+
+## Endpoints Disponíveis
+
+<CardGroup cols={2}>
+  <Card title="Criar Produto" icon="plus" href="/pages/produtos/create">
+    `POST /products`
+
+    Cadastra um novo produto
+  </Card>
+
+  <Card title="Listar Produtos" icon="list" href="/pages/produtos/list">
+    `GET /products`
+
+    Lista todos os produtos
+  </Card>
+
+  <Card title="Consultar Produto" icon="search" href="/pages/produtos/get">
+    `GET /products/:hash`
+
+    Busca um produto específico
+  </Card>
+
+  <Card title="Atualizar Produto" icon="pen" href="/pages/produtos/update">
+    `PUT /products/:hash`
+
+    Atualiza dados de um produto
+  </Card>
+
+  <Card title="Categorias" icon="tags" href="/pages/produtos/categories">
+    `GET /products/categories`
+
+    Lista categorias disponíveis
+  </Card>
+</CardGroup>
+
+## Estrutura de um Produto
+
+```json
+{
+  "hash": "7tjdfkshdv",
+  "title": "Curso de Desenvolvimento Web",
+  "cover": "https://d2zt257clo56ws.cloudfront.net/...",
+  "sale_page": "https://seusite.com/curso",
+  "payment_type": 1,
+  "product_type": "digital",
+  "delivery_type": 1,
+  "id_category": 1,
+  "category_name": "Tecnologia",
+  "amount": 49700,
+  "status": "active",
+  "created_at": "2026-03-16T10:00:00Z"
+}
+```
+
+## Campos Principais
+
+### Identificação
+
+- **hash**: Identificador único do produto
+- **title**: Nome do produto
+- **cover**: URL da imagem de capa
+
+### Tipo e Categoria
+
+- **product_type**: `"digital"` ou `"fisico"`
+- **id_category**: ID numérico da categoria
+- **category_name**: Nome da categoria
+
+### Vendas
+
+- **amount**: Valor base em centavos
+- **payment_type**: Tipo de pagamento (1 = Único, 2 = Recorrente)
+- **sale_page**: URL da página de vendas
+
+### Entrega
+
+- **delivery_type**:
+  - `1` = Área de membros da plataforma
+  - `2` = Área externa / URL customizada
+
+## Categorias de Produtos
+
+Use categorias para organizar seus produtos:
+
+| ID | Categoria |
+|----|-----------|
+| 1 | Tecnologia |
+| 2 | Marketing |
+| 3 | Design |
+| 4 | Negócios |
+| 5 | Saúde e Fitness |
+| 6 | Educação |
+| 7 | Outros |
+
+[Ver lista completa de categorias](/pages/produtos/categories)
+
+## Ofertas
+
+Produtos podem ter múltiplas ofertas associadas:
+
+- Ofertas permitem criar preços diferenciados
+- Útil para promoções e descontos
+- Cada oferta tem seu próprio hash
+- Ofertas herdam configurações do produto pai
+
+<Info>
+  Ofertas são gerenciadas nos endpoints `/products/:hash/offers`. [Saiba mais](/pages/ofertas/reference)
+</Info>
+
+## Fluxo de Criação
+
+<Steps>
+  <Step title="Criar Produto">
+    Cadastre o produto com informações básicas via `POST /products`
+  </Step>
+
+  <Step title="Criar Ofertas (Opcional)">
+    Crie ofertas promocionais via `POST /products/:hash/offers`
+  </Step>
+
+  <Step title="Processar Vendas">
+    Use o hash do produto ou oferta ao criar transações
+  </Step>
+
+  <Step title="Atualizar Produto">
+    Atualize informações conforme necessário via `PUT /products/:hash`
+  </Step>
+</Steps>
+
+## Tipos de Pagamento
+
+### Pagamento Único (payment_type: 1)
+
+Compra única, pagamento realizado uma vez:
+
+```json
+{
+  "title": "Curso Completo",
+  "payment_type": 1,
+  "amount": 49700
+}
+```
+
+### Pagamento Recorrente (payment_type: 2)
+
+Assinatura com cobranças periódicas:
+
+```json
+{
+  "title": "Assinatura Mensal",
+  "payment_type": 2,
+  "amount": 9700
+}
+```
+
+<Note>
+  A funcionalidade completa de assinaturas pode requerer configurações adicionais no dashboard.
+</Note>
+
+## Modos de Entrega
+
+### Área de Membros (delivery_type: 1)
+
+Conteúdo entregue na plataforma Klivopay:
+
+- Cliente acessa através do dashboard
+- Gerenciamento automático de acesso
+- Ideal para cursos e conteúdos digitais
+
+### Área Externa (delivery_type: 2)
+
+Redireciona para sistema externo:
+
+- Cliente é direcionado para URL externa
+- Integração via webhook necessária
+- Você gerencia o acesso no seu sistema
+
+## Casos de Uso
+
+### Criar Produto de Curso Online
+
+```json
+{
+  "title": "Curso de JavaScript Moderno",
+  "product_type": "digital",
+  "delivery_type": 1,
+  "payment_type": 1,
+  "id_category": 1,
+  "amount": 49700,
+  "sale_page": "https://seusite.com/javascript"
+}
+```
+
+### Criar Produto Físico
+
+```json
+{
+  "title": "Livro Impresso - Programação",
+  "product_type": "fisico",
+  "delivery_type": 2,
+  "payment_type": 1,
+  "id_category": 6,
+  "amount": 8900
+}
+```
+
+### Criar Assinatura Mensal
+
+```json
+{
+  "title": "Plataforma Premium - Mensal",
+  "product_type": "digital",
+  "delivery_type": 1,
+  "payment_type": 2,
+  "id_category": 1,
+  "amount": 9700
+}
+```
+
+## Integração com Transações
+
+Ao criar uma transação, inclua o produto no carrinho:
+
+```json
+{
+  "amount": 49700,
+  "cart": [
+    {
+      "product_hash": "7tjdfkshdv",
+      "title": "Curso de Desenvolvimento Web",
+      "price": 49700,
+      "quantity": 1,
+      "operation_type": 1,
+      "tangible": false
+    }
+  ]
+}
+```
+
+## Status do Produto
+
+Produtos podem ter diferentes status:
+
+- **active**: Ativo e disponível para venda
+- **inactive**: Inativo, não pode ser vendido
+- **draft**: Rascunho, ainda não publicado
+
+<Note>
+  O gerenciamento de status pode ser feito através do dashboard ou API.
+</Note>
+
+## Imagens e Mídia
+
+### Imagem de Capa
+
+Recomendações para a imagem de capa:
+
+- Formato: JPG, PNG ou WebP
+- Tamanho: Mínimo 800x600px
+- Proporção: 4:3 ou 16:9
+- Peso: Máximo 2MB
+
+### Hospedagem
+
+Você pode:
+
+1. Hospedar a imagem em seu servidor
+2. Usar CDN da Klivopay (upload via dashboard)
+3. Usar serviços externos (Cloudinary, S3, etc.)
+
+## Boas Práticas
+
+<AccordionGroup>
+  <Accordion title="Use Títulos Descritivos">
+    Títulos claros ajudam na conversão:
+
+    ✅ "Curso Completo de React 2026 - Do Básico ao Avançado"
+
+    ❌ "Curso"
+  </Accordion>
+
+  <Accordion title="Organize com Categorias">
+    Categorize corretamente para facilitar gestão e relatórios.
+  </Accordion>
+
+  <Accordion title="Configure Páginas de Venda">
+    Sempre inclua uma `sale_page` para direcionar clientes à página do produto.
+  </Accordion>
+
+  <Accordion title="Use Ofertas para Promoções">
+    Mantenha o produto base com valor cheio e crie ofertas para promoções.
+  </Accordion>
+</AccordionGroup>
+
+## Limitações
+
+- Máximo de 1000 produtos por conta
+- Títulos: Máximo 255 caracteres
+- URLs de imagem: Devem ser públicas e acessíveis
+- Categorias: Limitadas às categorias pré-definidas
+
+## Próximos Passos
+
+<CardGroup cols={2}>
+  <Card title="Criar Produto" icon="plus" href="/pages/produtos/create">
+    Cadastre seu primeiro produto
+  </Card>
+
+  <Card title="Listar Produtos" icon="list" href="/pages/produtos/list">
+    Veja todos os seus produtos
+  </Card>
+
+  <Card title="Criar Ofertas" icon="tag" href="/pages/ofertas/create">
+    Configure ofertas promocionais
+  </Card>
+
+  <Card title="Criar Transação" icon="credit-card" href="/pages/transacoes/create">
+    Processe vendas dos produtos
+  </Card>
+</CardGroup>

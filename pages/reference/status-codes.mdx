@@ -1,0 +1,250 @@
+---
+title: "Códigos de Status HTTP"
+description: "Códigos de status HTTP retornados pela API"
+---
+
+# Códigos de Status HTTP
+
+A API Klivopay utiliza códigos de status HTTP padrão para indicar o sucesso ou falha de requisições.
+
+## Códigos de Sucesso (2xx)
+
+| Código | Nome | Descrição | Quando Ocorre |
+|--------|------|-----------|---------------|
+| 200 | OK | Requisição bem-sucedida | GET, PUT, DELETE com sucesso |
+| 201 | Created | Recurso criado com sucesso | POST de produto, transação, oferta |
+
+### Exemplo 200 OK
+
+```json
+{
+  "success": true,
+  "data": {
+    "hash": "abc123",
+    "title": "Produto"
+  }
+}
+```
+
+### Exemplo 201 Created
+
+```json
+{
+  "success": true,
+  "data": {
+    "hash": "xyz789",
+    "created_at": "2026-03-16T10:00:00Z"
+  }
+}
+```
+
+## Códigos de Erro do Cliente (4xx)
+
+| Código | Nome | Descrição | Solução |
+|--------|------|-----------|---------|
+| 400 | Bad Request | Dados inválidos ou malformados | Verifique o formato do JSON e campos obrigatórios |
+| 401 | Unauthorized | Token ausente ou inválido | Verifique o token de API |
+| 403 | Forbidden | Acesso negado ao recurso | Verifique permissões da conta |
+| 404 | Not Found | Recurso não encontrado | Verifique o hash/ID do recurso |
+| 422 | Unprocessable Entity | Erro de validação | Corrija os dados conforme mensagem de erro |
+| 429 | Too Many Requests | Limite de taxa excedido | Aguarde antes de tentar novamente |
+
+### Exemplo 400 Bad Request
+
+```json
+{
+  "success": false,
+  "error": "Invalid request data",
+  "details": {
+    "customer.email": "Invalid email format",
+    "amount": "Amount must be greater than 100"
+  }
+}
+```
+
+### Exemplo 401 Unauthorized
+
+```json
+{
+  "success": false,
+  "error": "Invalid API token",
+  "code": "INVALID_TOKEN"
+}
+```
+
+### Exemplo 404 Not Found
+
+```json
+{
+  "success": false,
+  "error": "Transaction not found",
+  "code": "TRANSACTION_NOT_FOUND"
+}
+```
+
+### Exemplo 422 Unprocessable Entity
+
+```json
+{
+  "success": false,
+  "error": "Card declined",
+  "code": "CARD_DECLINED",
+  "message": "Insufficient funds"
+}
+```
+
+## Códigos de Erro do Servidor (5xx)
+
+| Código | Nome | Descrição | Ação |
+|--------|------|-----------|------|
+| 500 | Internal Server Error | Erro interno no servidor | Tente novamente ou contate o suporte |
+| 502 | Bad Gateway | Problema no gateway | Aguarde e tente novamente |
+| 503 | Service Unavailable | Serviço temporariamente indisponível | Aguarde e tente novamente |
+
+### Exemplo 500 Internal Server Error
+
+```json
+{
+  "success": false,
+  "error": "Internal server error",
+  "code": "INTERNAL_ERROR"
+}
+```
+
+## Status de Transações
+
+Além dos códigos HTTP, transações possuem status próprios:
+
+| Status | Descrição | Ação Recomendada |
+|--------|-----------|------------------|
+| `pending` | Aguardando pagamento | Aguardar ou consultar periodicamente |
+| `paid` | Pagamento confirmado | **Liberar acesso ao produto** |
+| `failed` | Pagamento falhou | Solicitar novo método de pagamento |
+| `refunded` | Reembolsado | **Revogar acesso** |
+| `canceled` | Cancelado | Registrar cancelamento |
+| `expired` | Expirado (PIX) | Criar nova transação |
+
+## Tratamento de Erros
+
+### Exemplo em JavaScript
+
+```javascript
+try {
+  const response = await fetch(url, options);
+
+  if (!response.ok) {
+    const error = await response.json();
+
+    switch (response.status) {
+      case 400:
+        console.error('Dados inválidos:', error.details);
+        break;
+
+      case 401:
+        console.error('Token inválido');
+        // Renovar token ou redirecionar para login
+        break;
+
+      case 404:
+        console.error('Recurso não encontrado');
+        break;
+
+      case 422:
+        console.error('Erro de validação:', error.message);
+        break;
+
+      case 500:
+        console.error('Erro no servidor');
+        // Implementar retry
+        break;
+
+      default:
+        console.error('Erro desconhecido:', error);
+    }
+
+    throw new Error(error.error || 'Request failed');
+  }
+
+  return await response.json();
+
+} catch (error) {
+  console.error('Request error:', error);
+  throw error;
+}
+```
+
+### Exemplo em Python
+
+```python
+import requests
+
+try:
+    response = requests.post(url, json=data, params=params)
+    response.raise_for_status()
+
+    return response.json()
+
+except requests.exceptions.HTTPError as e:
+    status_code = e.response.status_code
+    error_data = e.response.json()
+
+    if status_code == 400:
+        print('Dados inválidos:', error_data['details'])
+    elif status_code == 401:
+        print('Token inválido')
+    elif status_code == 422:
+        print('Erro de validação:', error_data['message'])
+    elif status_code >= 500:
+        print('Erro no servidor')
+
+    raise
+
+except requests.exceptions.RequestException as e:
+    print('Erro na requisição:', e)
+    raise
+```
+
+## Retry Logic
+
+Para erros temporários (5xx), implemente retry:
+
+```javascript
+async function requestWithRetry(url, options, maxRetries = 3) {
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      const response = await fetch(url, options);
+
+      if (response.ok) {
+        return await response.json();
+      }
+
+      // Retry apenas para erros 5xx
+      if (response.status >= 500 && i < maxRetries - 1) {
+        const delay = Math.pow(2, i) * 1000; // Exponential backoff
+        await new Promise(resolve => setTimeout(resolve, delay));
+        continue;
+      }
+
+      throw new Error(`HTTP ${response.status}`);
+
+    } catch (error) {
+      if (i === maxRetries - 1) throw error;
+
+      const delay = Math.pow(2, i) * 1000;
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+}
+```
+
+## Próximos Passos
+
+<CardGroup cols={2}>
+  <Card title="Códigos de Erro" icon="bug" href="/pages/reference/errors">
+    Veja lista completa de erros específicos
+  </Card>
+
+  <Card title="Criar Transação" icon="credit-card" href="/pages/transacoes/create">
+    Documentação da API de transações
+  </Card>
+</CardGroup>

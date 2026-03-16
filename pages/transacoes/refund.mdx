@@ -1,0 +1,536 @@
+---
+title: "Reembolsar Transação"
+api: "POST /public/v1/transactions/:hash/refund"
+description: "Realiza o reembolso total ou parcial de uma transação"
+---
+
+# Reembolsar Transação
+
+Processa o reembolso de uma transação paga. Suporta reembolsos totais e parciais.
+
+## Endpoint
+
+```
+POST https://api.klivopay.com.br/api/public/v1/transactions/:hash/refund?api_token=SEU_TOKEN
+```
+
+## Parâmetros de URL
+
+<ParamField path="hash" type="string" required>
+  Hash da transação a ser reembolsada
+</ParamField>
+
+## Parâmetros de Query
+
+<ParamField query="api_token" type="string" required>
+  Token de autenticação da API
+</ParamField>
+
+## Parâmetros do Body
+
+<ParamField body="amount" type="integer">
+  Valor a ser reembolsado em centavos. Se omitido, reembolsa o valor total.
+</ParamField>
+
+<ParamField body="reason" type="string">
+  Motivo do reembolso (opcional, para controle interno)
+</ParamField>
+
+## Exemplos de Requisição
+
+<CodeGroup>
+```bash Reembolso Total
+curl -X POST "https://api.klivopay.com.br/api/public/v1/transactions/abc123xyz/refund?api_token=SEU_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{}'
+```
+
+```bash Reembolso Parcial
+curl -X POST "https://api.klivopay.com.br/api/public/v1/transactions/abc123xyz/refund?api_token=SEU_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "amount": 10000,
+    "reason": "Reembolso parcial solicitado pelo cliente"
+  }'
+```
+
+```javascript JavaScript - Total
+const refundTransaction = async (hash) => {
+  const response = await fetch(
+    `https://api.klivopay.com.br/api/public/v1/transactions/${hash}/refund?api_token=SEU_TOKEN`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({})
+    }
+  );
+
+  return await response.json();
+};
+
+// Uso
+const result = await refundTransaction('abc123xyz');
+```
+
+```javascript JavaScript - Parcial
+const refundTransactionPartial = async (hash, amount, reason) => {
+  const response = await fetch(
+    `https://api.klivopay.com.br/api/public/v1/transactions/${hash}/refund?api_token=SEU_TOKEN`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        amount,
+        reason
+      })
+    }
+  );
+
+  return await response.json();
+};
+
+// Uso
+const result = await refundTransactionPartial(
+  'abc123xyz',
+  10000,
+  'Cliente solicitou reembolso parcial'
+);
+```
+
+```python Python
+import requests
+
+def refund_transaction(hash, amount=None, reason=None):
+    url = f"https://api.klivopay.com.br/api/public/v1/transactions/{hash}/refund"
+    params = {"api_token": "SEU_TOKEN"}
+
+    payload = {}
+    if amount:
+        payload["amount"] = amount
+    if reason:
+        payload["reason"] = reason
+
+    response = requests.post(url, params=params, json=payload)
+    return response.json()
+
+# Reembolso total
+refund_transaction('abc123xyz')
+
+# Reembolso parcial
+refund_transaction('abc123xyz', amount=10000, reason='Reembolso parcial')
+```
+
+```php PHP
+<?php
+
+function refundTransaction($hash, $apiToken, $amount = null, $reason = null) {
+    $url = "https://api.klivopay.com.br/api/public/v1/transactions/{$hash}/refund";
+    $url .= "?api_token={$apiToken}";
+
+    $payload = [];
+    if ($amount) {
+        $payload['amount'] = $amount;
+    }
+    if ($reason) {
+        $payload['reason'] = $reason;
+    }
+
+    $ch = curl_init($url);
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+
+    $response = curl_exec($ch);
+    curl_close($ch);
+
+    return json_decode($response, true);
+}
+
+// Reembolso total
+refundTransaction('abc123xyz', 'SEU_TOKEN');
+
+// Reembolso parcial
+refundTransaction('abc123xyz', 'SEU_TOKEN', 10000, 'Reembolso parcial');
+```
+</CodeGroup>
+
+## Resposta
+
+<ResponseField name="success" type="boolean">
+  Indica se o reembolso foi processado com sucesso
+</ResponseField>
+
+<ResponseField name="data" type="object">
+  Dados da transação reembolsada
+
+  <Expandable title="Estrutura">
+    <ResponseField name="hash" type="string">
+      Hash da transação
+    </ResponseField>
+
+    <ResponseField name="status" type="string">
+      Novo status: `refunded`
+    </ResponseField>
+
+    <ResponseField name="amount" type="integer">
+      Valor original em centavos
+    </ResponseField>
+
+    <ResponseField name="refunded_amount" type="integer">
+      Valor reembolsado em centavos
+    </ResponseField>
+
+    <ResponseField name="refunded_at" type="string">
+      Data/hora do reembolso
+    </ResponseField>
+
+    <ResponseField name="customer" type="object">
+      Dados do cliente
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Exemplo de Resposta - Sucesso
+
+```json
+{
+  "success": true,
+  "data": {
+    "hash": "abc123xyz",
+    "status": "refunded",
+    "payment_method": "credit_card",
+    "amount": 29700,
+    "refunded_amount": 29700,
+    "customer": {
+      "name": "João Silva",
+      "email": "joao@email.com"
+    },
+    "created_at": "2026-03-16T10:00:00Z",
+    "paid_at": "2026-03-16T10:05:00Z",
+    "refunded_at": "2026-03-16T15:30:00Z"
+  },
+  "message": "Refund processed successfully"
+}
+```
+
+### Exemplo de Resposta - Reembolso Parcial
+
+```json
+{
+  "success": true,
+  "data": {
+    "hash": "abc123xyz",
+    "status": "partially_refunded",
+    "payment_method": "credit_card",
+    "amount": 29700,
+    "refunded_amount": 10000,
+    "remaining_amount": 19700,
+    "refunded_at": "2026-03-16T15:30:00Z"
+  },
+  "message": "Partial refund processed successfully"
+}
+```
+
+## Códigos de Status HTTP
+
+| Código | Descrição |
+|--------|-----------|
+| 200 | Reembolso processado com sucesso |
+| 400 | Requisição inválida |
+| 401 | Token inválido ou ausente |
+| 404 | Transação não encontrada |
+| 422 | Transação não pode ser reembolsada |
+| 500 | Erro interno do servidor |
+
+## Erros Comuns
+
+<AccordionGroup>
+  <Accordion title="422 - Transação Não Paga">
+    ```json
+    {
+      "success": false,
+      "error": "Transaction not paid",
+      "code": "TRANSACTION_NOT_PAID",
+      "message": "Only paid transactions can be refunded"
+    }
+    ```
+
+    **Solução**: Apenas transações com status `paid` podem ser reembolsadas.
+  </Accordion>
+
+  <Accordion title="422 - Prazo Expirado">
+    ```json
+    {
+      "success": false,
+      "error": "Refund period expired",
+      "code": "REFUND_PERIOD_EXPIRED",
+      "message": "Refunds are only allowed within 180 days"
+    }
+    ```
+
+    **Solução**: Reembolsos só podem ser feitos em até 180 dias após o pagamento.
+  </Accordion>
+
+  <Accordion title="422 - Valor Inválido">
+    ```json
+    {
+      "success": false,
+      "error": "Invalid refund amount",
+      "code": "INVALID_AMOUNT",
+      "message": "Refund amount exceeds transaction amount"
+    }
+    ```
+
+    **Solução**: O valor do reembolso não pode ser maior que o valor pago.
+  </Accordion>
+
+  <Accordion title="422 - Já Reembolsado">
+    ```json
+    {
+      "success": false,
+      "error": "Transaction already refunded",
+      "code": "ALREADY_REFUNDED"
+    }
+    ```
+
+    **Solução**: A transação já foi totalmente reembolsada.
+  </Accordion>
+</AccordionGroup>
+
+## Regras de Reembolso
+
+### Transações Elegíveis
+
+<Check>**Podem ser reembolsadas:**</Check>
+
+- Transações com status `paid`
+- Pagamentos via **Cartão de Crédito**
+- Até **180 dias** após o pagamento
+- Reembolsos parciais ou totais
+
+<Warning>**NÃO podem ser reembolsadas:**</Warning>
+
+- Transações PIX (sem suporte a reembolso)
+- Transações com status `pending`, `failed`, `canceled`
+- Transações com mais de 180 dias
+- Transações já totalmente reembolsadas
+
+### Prazos
+
+| Item | Prazo |
+|------|-------|
+| Prazo para solicitar | Até 180 dias após pagamento |
+| Processamento | 5-10 dias úteis |
+| Crédito na fatura | 1-2 faturas |
+
+### Valores
+
+- **Reembolso Total**: Omita o campo `amount` ou envie o valor total
+- **Reembolso Parcial**: Envie o campo `amount` com valor menor que o total
+- **Múltiplos Reembolsos**: Possível fazer vários reembolsos parciais até o valor total
+
+## Tipos de Reembolso
+
+### Reembolso Total
+
+Reembolsa 100% do valor pago:
+
+```javascript
+await refundTransaction('abc123xyz');
+// ou
+await refundTransaction('abc123xyz', { amount: 29700 });
+```
+
+### Reembolso Parcial
+
+Reembolsa apenas parte do valor:
+
+```javascript
+// Reembolsar R$ 100,00 de uma transação de R$ 297,00
+await refundTransaction('abc123xyz', {
+  amount: 10000,
+  reason: 'Cliente devolveu 1 item do pedido'
+});
+```
+
+### Múltiplos Reembolsos Parciais
+
+```javascript
+// Primeira parte: R$ 100,00
+await refundTransaction('abc123xyz', {
+  amount: 10000,
+  reason: 'Primeiro reembolso parcial'
+});
+
+// Segunda parte: R$ 197,00 (restante)
+await refundTransaction('abc123xyz', {
+  amount: 19700,
+  reason: 'Reembolso do restante'
+});
+```
+
+## Webhook de Reembolso
+
+Quando um reembolso é processado, um webhook é enviado:
+
+```json
+{
+  "event": "transaction.refunded",
+  "transaction_hash": "abc123xyz",
+  "status": "refunded",
+  "previous_status": "paid",
+  "amount": 29700,
+  "refunded_amount": 29700,
+  "refunded_at": "2026-03-16T15:30:00Z",
+  "customer": {
+    "name": "João Silva",
+    "email": "joao@email.com"
+  },
+  "timestamp": "2026-03-16T15:30:05Z"
+}
+```
+
+### Tratando Webhook de Reembolso
+
+```javascript
+app.post('/webhook/klivopay', async (req, res) => {
+  const { event, transaction_hash, status } = req.body;
+
+  if (event === 'transaction.refunded' || status === 'refunded') {
+    // Revogar acesso ao produto
+    await revokeAccess(req.body.customer.email);
+
+    // Notificar cliente
+    await sendRefundEmail(req.body.customer.email, {
+      amount: req.body.refunded_amount,
+      transactionHash: transaction_hash
+    });
+  }
+
+  res.status(200).send('OK');
+});
+```
+
+## Casos de Uso
+
+### Reembolso por Insatisfação do Cliente
+
+```javascript
+async function processCustomerRefund(transactionHash, reason) {
+  try {
+    // Reembolso total
+    const result = await refundTransaction(transactionHash, {
+      reason: reason || 'Cliente insatisfeito'
+    });
+
+    // Revogar acesso
+    await revokeAccess(result.data.customer.email);
+
+    // Notificar cliente
+    await sendEmail(result.data.customer.email, 'refund_processed', {
+      amount: result.data.refunded_amount
+    });
+
+    return result;
+
+  } catch (error) {
+    console.error('Refund failed:', error);
+    throw error;
+  }
+}
+```
+
+### Reembolso Parcial por Produto Defeituoso
+
+```javascript
+async function partialRefundDefectiveItem(transactionHash, itemPrice) {
+  return await refundTransaction(transactionHash, {
+    amount: itemPrice,
+    reason: 'Produto defeituoso - reembolso parcial'
+  });
+}
+```
+
+### Verificar se Pode Reembolsar
+
+```javascript
+async function canRefund(transactionHash) {
+  const transaction = await getTransaction(transactionHash);
+
+  if (transaction.data.status !== 'paid') {
+    return { canRefund: false, reason: 'Transaction not paid' };
+  }
+
+  if (transaction.data.payment_method === 'pix') {
+    return { canRefund: false, reason: 'PIX refunds not supported' };
+  }
+
+  const paidDate = new Date(transaction.data.paid_at);
+  const daysSincePaid = (Date.now() - paidDate) / (1000 * 60 * 60 * 24);
+
+  if (daysSincePaid > 180) {
+    return { canRefund: false, reason: 'Refund period expired (180 days)' };
+  }
+
+  return { canRefund: true };
+}
+```
+
+## Observações Importantes
+
+<Warning>
+  **Pagamentos PIX não suportam reembolso** através da API. Para reembolsar PIX, é necessário fazer transferência manual.
+</Warning>
+
+<Info>
+  **Reembolsos são processados pela operadora de cartão**, não pela Klivopay. O prazo de crédito na fatura do cliente depende da operadora.
+</Info>
+
+<Note>
+  **Taxas de processamento não são reembolsadas**. O valor reembolsado ao cliente é líquido, sem incluir as taxas de transação.
+</Note>
+
+<Tip>
+  **Sempre registre o motivo** do reembolso para auditoria e análise futura de cancelamentos.
+</Tip>
+
+## Auditoria de Reembolsos
+
+Mantenha registro de todos os reembolsos:
+
+```javascript
+async function logRefund(transactionHash, amount, reason, userId) {
+  await db.refunds.create({
+    transaction_hash: transactionHash,
+    amount: amount,
+    reason: reason,
+    requested_by: userId,
+    requested_at: new Date()
+  });
+}
+```
+
+## Próximos Passos
+
+<CardGroup cols={2}>
+  <Card title="Consultar Transação" icon="search" href="/pages/transacoes/get">
+    Verificar status de reembolso
+  </Card>
+
+  <Card title="Webhooks" icon="webhook" href="/pages/start/webhooks">
+    Receber notificações de reembolso
+  </Card>
+
+  <Card title="Listar Transações" icon="list" href="/pages/transacoes/list">
+    Filtrar transações reembolsadas
+  </Card>
+
+  <Card title="Status Codes" icon="list-check" href="/pages/reference/status-codes">
+    Entender códigos de status
+  </Card>
+</CardGroup>

@@ -1,0 +1,387 @@
+---
+title: "Transações - Visão Geral"
+description: "Entenda como funcionam as transações na API Klivopay"
+---
+
+# Transações
+
+Transações representam pagamentos processados através da Klivopay. Você pode criar, consultar, listar e reembolsar transações usando a API.
+
+## O que são Transações?
+
+Uma transação é criada quando um cliente realiza um pagamento por um produto ou serviço. Ela contém:
+
+- Informações do pagamento (método, valor, parcelas)
+- Dados do cliente
+- Itens do carrinho
+- Status de processamento
+- Histórico de atualizações
+
+## Métodos de Pagamento Suportados
+
+<CardGroup cols={2}>
+  <Card title="PIX" icon="qrcode">
+    Pagamento instantâneo via PIX
+
+    - Aprovação automática
+    - QR Code gerado
+    - Sem parcelamento
+    - Expira em N dias
+  </Card>
+
+  <Card title="Cartão de Crédito" icon="credit-card">
+    Pagamento com cartão
+
+    - Parcelamento até 12x
+    - Aprovação em tempo real
+    - Juros configuráveis
+    - Reembolso disponível
+  </Card>
+</CardGroup>
+
+## Status de Transações
+
+| Status | Descrição | Ação |
+|--------|-----------|------|
+| `pending` | Aguardando pagamento | Cliente ainda não pagou |
+| `paid` | Pago com sucesso | **Liberar acesso ao produto** |
+| `failed` | Pagamento falhou | Notificar cliente |
+| `refunded` | Reembolsado | **Revogar acesso** |
+| `canceled` | Cancelado | Registrar cancelamento |
+| `expired` | Expirado (PIX) | Pagamento não realizado no prazo |
+
+## Fluxo de uma Transação
+
+<Steps>
+  <Step title="Criação">
+    Cliente inicia o pagamento via `POST /transactions`
+  </Step>
+
+  <Step title="Processamento">
+    Klivopay processa o pagamento com a operadora
+  </Step>
+
+  <Step title="Notificação">
+    Status atualizado e webhook enviado
+  </Step>
+
+  <Step title="Confirmação">
+    Aplicação confirma via `GET /transactions/:hash`
+  </Step>
+
+  <Step title="Liberação">
+    Acesso ao produto liberado para o cliente
+  </Step>
+</Steps>
+
+## Endpoints Disponíveis
+
+<CardGroup cols={2}>
+  <Card title="Criar Transação" icon="plus" href="/pages/transacoes/create">
+    `POST /transactions`
+
+    Processa um novo pagamento
+  </Card>
+
+  <Card title="Listar Transações" icon="list" href="/pages/transacoes/list">
+    `GET /transactions`
+
+    Lista todas as transações
+  </Card>
+
+  <Card title="Consultar Transação" icon="search" href="/pages/transacoes/get">
+    `GET /transactions/:hash`
+
+    Busca uma transação específica
+  </Card>
+
+  <Card title="Reembolsar" icon="rotate-left" href="/pages/transacoes/refund">
+    `POST /transactions/:hash/refund`
+
+    Reembolsa uma transação
+  </Card>
+</CardGroup>
+
+## Estrutura de uma Transação
+
+```json
+{
+  "hash": "abc123xyz",
+  "status": "paid",
+  "amount": 29700,
+  "payment_method": "credit_card",
+  "installments": 3,
+  "installment_amount": 9900,
+  "customer": {
+    "name": "João Silva",
+    "email": "joao@email.com",
+    "document": "12345678900",
+    "phone_number": "21987654321"
+  },
+  "cart": [
+    {
+      "product_hash": "7tjdfkshdv",
+      "title": "Curso de Desenvolvimento Web",
+      "price": 29700,
+      "quantity": 1,
+      "operation_type": 1,
+      "tangible": false
+    }
+  ],
+  "created_at": "2026-03-16T10:00:00Z",
+  "paid_at": "2026-03-16T10:05:00Z"
+}
+```
+
+## Conceitos Importantes
+
+### Valores em Centavos
+
+Todos os valores monetários são representados em **centavos**:
+
+```json
+{
+  "amount": 29700,  // R$ 297,00
+  "installment_amount": 9900  // R$ 99,00
+}
+```
+
+### Hash como Identificador
+
+Transações são identificadas por um `hash` único, não por ID numérico:
+
+```bash
+GET /transactions/abc123xyz
+```
+
+### Carrinho (Cart)
+
+O carrinho contém os itens da compra:
+
+```json
+{
+  "cart": [
+    {
+      "product_hash": "7tjdfkshdv",
+      "title": "Produto 1",
+      "price": 10000,
+      "quantity": 2
+    },
+    {
+      "product_hash": "8ukegmtifw",
+      "title": "Produto 2",
+      "price": 15000,
+      "quantity": 1
+    }
+  ]
+}
+```
+
+### Dados do Cliente
+
+Informações completas do cliente são obrigatórias:
+
+<Tabs>
+  <Tab title="PIX">
+    Campos obrigatórios:
+    - `name`
+    - `email`
+    - `phone_number`
+    - `document` (CPF/CNPJ)
+  </Tab>
+
+  <Tab title="Cartão de Crédito">
+    Além dos campos do PIX, são obrigatórios:
+    - `street_name`
+    - `number`
+    - `neighborhood`
+    - `city`
+    - `state`
+    - `zip_code`
+  </Tab>
+</Tabs>
+
+## Parcelamento
+
+### Como Funciona
+
+Transações com cartão de crédito podem ser parceladas:
+
+- Mínimo: 1x (à vista)
+- Máximo: 12x
+- Juros: Simples ou compostos (configurável)
+
+### Exemplo de Parcelamento
+
+```json
+{
+  "amount": 30000,
+  "installments": 3,
+  "payment_method": "credit_card"
+}
+```
+
+Resultado:
+- Total: R$ 300,00
+- Parcelas: 3x de R$ 100,00
+
+<Info>
+  Use o endpoint [Calcular Parcelamento](/pages/parcelamento/calculate) para obter os valores exatos com juros.
+</Info>
+
+## Pagamento via PIX
+
+### Características
+
+- Pagamento instantâneo
+- QR Code gerado automaticamente
+- Expira em N dias (configurável)
+- Sem taxas adicionais
+- Aprovação automática
+
+### Resposta PIX
+
+Ao criar uma transação PIX, você recebe:
+
+```json
+{
+  "hash": "abc123",
+  "status": "pending",
+  "payment_method": "pix",
+  "pix": {
+    "qr_code": "00020126580014br.gov.bcb.pix...",
+    "qr_code_url": "https://api.klivopay.com.br/qr/abc123.png",
+    "expires_at": "2026-03-17T10:00:00Z"
+  }
+}
+```
+
+Exiba o QR Code para o cliente escanear e pagar.
+
+## Pagamento via Cartão
+
+### Características
+
+- Aprovação em tempo real
+- Parcelamento até 12x
+- Suporte a todas as bandeiras
+- Dados do cartão obrigatórios
+
+### Dados do Cartão
+
+```json
+{
+  "card": {
+    "number": "4111111111111111",
+    "holder_name": "JOAO SILVA",
+    "exp_month": 12,
+    "exp_year": 2028,
+    "cvv": "123"
+  }
+}
+```
+
+<Warning>
+  Dados do cartão são sensíveis. Nunca armazene em seu sistema. A Klivopay processa tudo de forma segura.
+</Warning>
+
+## Webhooks
+
+Receba notificações automáticas quando o status mudar:
+
+```json
+{
+  "postback_url": "https://seu-dominio.com/webhook/klivopay"
+}
+```
+
+O webhook é chamado quando:
+- Pagamento é confirmado (`pending` → `paid`)
+- Transação falha (`pending` → `failed`)
+- Reembolso é processado (`paid` → `refunded`)
+- PIX expira (`pending` → `expired`)
+
+[Saiba mais sobre Webhooks](/pages/start/webhooks)
+
+## Reembolsos
+
+Transações pagas podem ser reembolsadas:
+
+- Reembolso total ou parcial
+- Apenas para cartão de crédito
+- Prazo: Até 180 dias
+- Processamento: 5-10 dias úteis
+
+[Ver Documentação de Reembolso](/pages/transacoes/refund)
+
+## Segurança
+
+### PCI Compliance
+
+A Klivopay é certificada PCI DSS, garantindo:
+
+- Criptografia de dados sensíveis
+- Armazenamento seguro
+- Conformidade com padrões internacionais
+
+### Boas Práticas
+
+<AccordionGroup>
+  <Accordion title="Nunca Armazene Dados de Cartão">
+    Envie os dados diretamente para a API. Nunca salve em seu banco de dados.
+  </Accordion>
+
+  <Accordion title="Use HTTPS">
+    Sempre use HTTPS para comunicação com a API.
+  </Accordion>
+
+  <Accordion title="Valide Webhooks">
+    Confirme o status consultando a API após receber webhooks.
+  </Accordion>
+
+  <Accordion title="Implemente Idempotência">
+    Garanta que processar um webhook duas vezes não cause problemas.
+  </Accordion>
+</AccordionGroup>
+
+## Limites e Restrições
+
+| Item | Limite |
+|------|--------|
+| Valor mínimo | R$ 5,00 |
+| Valor máximo | R$ 50.000,00 |
+| Parcelas máximas | 12x |
+| Expiração PIX | 1-30 dias |
+| Timeout API | 30 segundos |
+
+## Exemplos de Uso
+
+<CardGroup cols={2}>
+  <Card title="Pagamento PIX" icon="qrcode" href="/pages/examples/pix-payment">
+    Exemplo completo de integração PIX
+  </Card>
+
+  <Card title="Fluxo de Pagamento" icon="arrows-turn-right" href="/pages/examples/payment-flow">
+    Fluxo completo do checkout ao webhook
+  </Card>
+</CardGroup>
+
+## Próximos Passos
+
+<CardGroup cols={2}>
+  <Card title="Criar Transação" icon="plus" href="/pages/transacoes/create">
+    Aprenda a processar pagamentos
+  </Card>
+
+  <Card title="Consultar Status" icon="search" href="/pages/transacoes/get">
+    Verifique o status de uma transação
+  </Card>
+
+  <Card title="Configurar Webhooks" icon="webhook" href="/pages/start/webhooks">
+    Receba notificações automáticas
+  </Card>
+
+  <Card title="Calcular Parcelas" icon="calculator" href="/pages/parcelamento/calculate">
+    Calcule valores de parcelamento
+  </Card>
+</CardGroup>

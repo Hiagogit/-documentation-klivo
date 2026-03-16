@@ -1,0 +1,368 @@
+---
+title: "Guia Rápido"
+description: "Faça sua primeira integração com a API Klivopay em minutos"
+---
+
+# Guia Rápido de Integração
+
+Este guia mostra como integrar a API Klivopay em sua aplicação em poucos passos. Você aprenderá a criar um produto, uma oferta e processar um pagamento.
+
+## Pré-requisitos
+
+Antes de começar, você precisará:
+
+<AccordionGroup>
+  <Accordion title="Token de API">
+    Obtenha seu token de API no [Dashboard Klivopay](https://klivopay.com.br/dashboard).
+
+    [Saiba mais sobre autenticação](/pages/start/authentication)
+  </Accordion>
+
+  <Accordion title="Ferramentas">
+    - cURL, Postman ou qualquer cliente HTTP
+    - Editor de código de sua preferência
+    - Conhecimento básico de APIs REST
+  </Accordion>
+</AccordionGroup>
+
+## Passo 1: Criar um Produto
+
+Primeiro, vamos cadastrar um produto na Klivopay.
+
+<CodeGroup>
+```bash cURL
+curl -X POST "https://api.klivopay.com.br/api/public/v1/products?api_token=SEU_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Curso de Desenvolvimento Web",
+    "product_type": "digital",
+    "delivery_type": 1,
+    "id_category": 1,
+    "amount": 49700
+  }'
+```
+
+```json Resposta
+{
+  "success": true,
+  "data": {
+    "hash": "7tjdfkshdv",
+    "title": "Curso de Desenvolvimento Web",
+    "product_type": "digital",
+    "amount": 49700,
+    "created_at": "2026-03-16T10:30:00Z"
+  }
+}
+```
+</CodeGroup>
+
+<Note>
+  Salve o `hash` retornado - você precisará dele nos próximos passos.
+</Note>
+
+### Parâmetros Importantes
+
+- `amount`: Valor em centavos (49700 = R$ 497,00)
+- `product_type`: `"digital"` ou `"fisico"`
+- `delivery_type`: `1` = Área de membros, `2` = Área externa
+- `id_category`: ID da categoria (consulte via `/products/categories`)
+
+## Passo 2: Criar uma Oferta
+
+Agora vamos criar uma oferta promocional para o produto.
+
+<CodeGroup>
+```bash cURL
+curl -X POST "https://api.klivopay.com.br/api/public/v1/products/7tjdfkshdv/offers?api_token=SEU_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Oferta de Lançamento - 40% OFF",
+    "amount": 29700
+  }'
+```
+
+```json Resposta
+{
+  "success": true,
+  "data": {
+    "hash": "7becb",
+    "product_hash": "7tjdfkshdv",
+    "title": "Oferta de Lançamento - 40% OFF",
+    "amount": 29700,
+    "created_at": "2026-03-16T10:35:00Z"
+  }
+}
+```
+</CodeGroup>
+
+<Tip>
+  Ofertas permitem criar preços promocionais sem alterar o produto original.
+</Tip>
+
+## Passo 3: Processar um Pagamento
+
+Agora vamos processar uma transação usando a oferta criada.
+
+### Opção A: Pagamento via PIX
+
+<CodeGroup>
+```bash cURL
+curl -X POST "https://api.klivopay.com.br/api/public/v1/transactions?api_token=SEU_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "amount": 29700,
+    "offer_hash": "7becb",
+    "payment_method": "pix",
+    "customer": {
+      "name": "João Silva",
+      "email": "joao@email.com",
+      "phone_number": "21987654321",
+      "document": "12345678900"
+    },
+    "cart": [
+      {
+        "product_hash": "7tjdfkshdv",
+        "title": "Curso de Desenvolvimento Web",
+        "price": 29700,
+        "quantity": 1,
+        "operation_type": 1,
+        "tangible": false
+      }
+    ],
+    "installments": 1,
+    "expire_in_days": 1,
+    "transaction_origin": "api",
+    "postback_url": "https://seu-dominio.com/webhook/klivopay"
+  }'
+```
+
+```json Resposta
+{
+  "success": true,
+  "data": {
+    "hash": "txn123abc",
+    "status": "pending",
+    "payment_method": "pix",
+    "amount": 29700,
+    "pix": {
+      "qr_code": "00020126580014br.gov.bcb.pix...",
+      "qr_code_url": "https://...",
+      "expires_at": "2026-03-17T10:40:00Z"
+    },
+    "customer": {
+      "name": "João Silva",
+      "email": "joao@email.com"
+    }
+  }
+}
+```
+</CodeGroup>
+
+### Opção B: Pagamento com Cartão de Crédito
+
+<CodeGroup>
+```bash cURL
+curl -X POST "https://api.klivopay.com.br/api/public/v1/transactions?api_token=SEU_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "amount": 29700,
+    "offer_hash": "7becb",
+    "payment_method": "credit_card",
+    "card": {
+      "number": "4111111111111111",
+      "holder_name": "JOAO SILVA",
+      "exp_month": 12,
+      "exp_year": 2028,
+      "cvv": "123"
+    },
+    "customer": {
+      "name": "João Silva",
+      "email": "joao@email.com",
+      "phone_number": "21987654321",
+      "document": "12345678900",
+      "street_name": "Rua das Flores",
+      "number": "123",
+      "complement": "Apt 45",
+      "neighborhood": "Centro",
+      "city": "Rio de Janeiro",
+      "state": "RJ",
+      "zip_code": "20000000"
+    },
+    "cart": [
+      {
+        "product_hash": "7tjdfkshdv",
+        "title": "Curso de Desenvolvimento Web",
+        "price": 29700,
+        "quantity": 1,
+        "operation_type": 1,
+        "tangible": false
+      }
+    ],
+    "installments": 3,
+    "transaction_origin": "api",
+    "postback_url": "https://seu-dominio.com/webhook/klivopay"
+  }'
+```
+
+```json Resposta
+{
+  "success": true,
+  "data": {
+    "hash": "txn456def",
+    "status": "paid",
+    "payment_method": "credit_card",
+    "amount": 29700,
+    "installments": 3,
+    "installment_amount": 9900,
+    "customer": {
+      "name": "João Silva",
+      "email": "joao@email.com"
+    }
+  }
+}
+```
+</CodeGroup>
+
+<Warning>
+  Para pagamentos com cartão, todos os dados de endereço do cliente são obrigatórios.
+</Warning>
+
+## Passo 4: Consultar Status da Transação
+
+Você pode consultar o status de uma transação a qualquer momento:
+
+<CodeGroup>
+```bash cURL
+curl -X GET "https://api.klivopay.com.br/api/public/v1/transactions/txn123abc?api_token=SEU_TOKEN"
+```
+
+```json Resposta
+{
+  "success": true,
+  "data": {
+    "hash": "txn123abc",
+    "status": "paid",
+    "payment_method": "pix",
+    "amount": 29700,
+    "paid_at": "2026-03-16T11:00:00Z",
+    "customer": {
+      "name": "João Silva",
+      "email": "joao@email.com"
+    },
+    "cart": [...]
+  }
+}
+```
+</CodeGroup>
+
+## Passo 5: Configurar Webhooks
+
+Para receber notificações automáticas, configure um endpoint webhook:
+
+```javascript
+// Exemplo de endpoint webhook (Node.js/Express)
+app.post('/webhook/klivopay', (req, res) => {
+  const { transaction_hash, status, amount, payment_method } = req.body;
+
+  console.log(`Transação ${transaction_hash} - Status: ${status}`);
+
+  if (status === 'paid') {
+    // Liberar acesso ao produto
+    grantAccess(req.body.customer.email, req.body.cart);
+  }
+
+  res.status(200).send('OK');
+});
+```
+
+<Info>
+  Sempre inclua o campo `postback_url` ao criar transações para receber webhooks.
+</Info>
+
+## Status de Transações
+
+| Status | Descrição |
+|--------|-----------|
+| `pending` | Aguardando pagamento |
+| `paid` | Pago com sucesso |
+| `refunded` | Reembolsado |
+| `failed` | Falhou |
+| `canceled` | Cancelado |
+
+## Fluxo Completo
+
+<Steps>
+  <Step title="Criar Produto">
+    `POST /products` - Cadastrar produto
+  </Step>
+
+  <Step title="Criar Oferta">
+    `POST /products/:hash/offers` - Criar oferta promocional
+  </Step>
+
+  <Step title="Processar Pagamento">
+    `POST /transactions` - Processar transação (PIX ou Cartão)
+  </Step>
+
+  <Step title="Receber Webhook">
+    Seu servidor recebe notificação de status
+  </Step>
+
+  <Step title="Liberar Acesso">
+    Conceder acesso ao cliente após confirmação
+  </Step>
+</Steps>
+
+## Checklist de Integração
+
+<AccordionGroup>
+  <Accordion title="Preparação">
+    - [ ] Obter token de API
+    - [ ] Configurar ambiente de desenvolvimento
+    - [ ] Revisar documentação
+  </Accordion>
+
+  <Accordion title="Desenvolvimento">
+    - [ ] Implementar criação de produtos
+    - [ ] Implementar criação de ofertas
+    - [ ] Implementar processamento de pagamentos
+    - [ ] Configurar endpoint de webhook
+    - [ ] Implementar tratamento de erros
+  </Accordion>
+
+  <Accordion title="Testes">
+    - [ ] Testar pagamento via PIX
+    - [ ] Testar pagamento com cartão
+    - [ ] Testar webhook de notificações
+    - [ ] Testar consulta de transações
+    - [ ] Testar reembolsos
+  </Accordion>
+</AccordionGroup>
+
+## Próximos Passos
+
+Agora que você completou a integração básica, explore recursos avançados:
+
+<CardGroup cols={2}>
+  <Card title="Webhooks" icon="webhook" href="/pages/start/webhooks">
+    Configure notificações em tempo real
+  </Card>
+
+  <Card title="Reembolsos" icon="rotate-left" href="/pages/transacoes/refund">
+    Aprenda a processar reembolsos
+  </Card>
+
+  <Card title="Parcelamento" icon="credit-card" href="/pages/parcelamento/calculate">
+    Calcule parcelas com juros
+  </Card>
+
+  <Card title="Exemplos" icon="code" href="/pages/examples/overview">
+    Veja mais exemplos de integração
+  </Card>
+</CardGroup>
+
+## Precisa de Ajuda?
+
+- Consulte a [Documentação Completa](/pages/transacoes/reference)
+- Veja [Exemplos de Código](/pages/examples/overview)
+- Revise os [Códigos de Erro](/pages/reference/errors)

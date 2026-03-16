@@ -1,0 +1,337 @@
+---
+title: "Pagamento via PIX"
+description: "Exemplo de integração de pagamento PIX com QR Code"
+---
+
+# Pagamento via PIX
+
+Este exemplo demonstra como implementar pagamento via PIX, incluindo geração de QR Code e verificação de pagamento.
+
+## Fluxo PIX
+
+<Steps>
+  <Step title="Criar Transação PIX">
+    Cliente solicita pagamento via PIX
+  </Step>
+
+  <Step title="Exibir QR Code">
+    Sistema exibe QR Code para o cliente
+  </Step>
+
+  <Step title="Cliente Paga">
+    Cliente escaneia e paga via app do banco
+  </Step>
+
+  <Step title="Confirmação Automática">
+    Webhook notifica pagamento confirmado
+  </Step>
+
+  <Step title="Liberar Acesso">
+    Sistema libera acesso ao produto
+  </Step>
+</Steps>
+
+## Implementação (Node.js)
+
+```javascript
+const express = require('express');
+const axios = require('axios');
+const QRCode = require('qrcode');
+
+const app = express();
+app.use(express.json());
+
+const KLIVOPAY_API = 'https://api.klivopay.com.br/api';
+const API_TOKEN = process.env.KLIVOPAY_TOKEN;
+
+// 1. Criar Transação PIX
+app.post('/api/checkout/pix', async (req, res) => {
+  try {
+    const { productHash, customer } = req.body;
+
+    // Criar transação PIX
+    const { data } = await axios.post(
+      `${KLIVOPAY_API}/public/v1/transactions`,
+      {
+        amount: 29700,
+        payment_method: 'pix',
+        offer_hash: productHash,
+        customer: {
+          name: customer.name,
+          email: customer.email,
+          phone_number: customer.phone_number,
+          document: customer.document
+        },
+        cart: [
+          {
+            product_hash: productHash,
+            title: 'Curso de Desenvolvimento Web',
+            price: 29700,
+            quantity: 1,
+            operation_type: 1,
+            tangible: false
+          }
+        ],
+        installments: 1,
+        expire_in_days: 1,
+        transaction_origin: 'api',
+        postback_url: 'https://seu-dominio.com/webhook/klivopay'
+      },
+      { params: { api_token: API_TOKEN } }
+    );
+
+    const transaction = data.data;
+
+    // Gerar QR Code como imagem
+    const qrCodeImage = await QRCode.toDataURL(transaction.pix.qr_code);
+
+    res.json({
+      success: true,
+      transaction_hash: transaction.hash,
+      pix: {
+        qr_code: transaction.pix.qr_code,
+        qr_code_image: qrCodeImage,
+        qr_code_url: transaction.pix.qr_code_url,
+        expires_at: transaction.pix.expires_at
+      }
+    });
+
+  } catch (error) {
+    console.error('Erro ao criar transação PIX:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Erro ao processar pagamento'
+    });
+  }
+});
+
+// 2. Verificar Status do PIX
+app.get('/api/transactions/:hash/status', async (req, res) => {
+  try {
+    const { hash } = req.params;
+
+    const { data } = await axios.get(
+      `${KLIVOPAY_API}/public/v1/transactions/${hash}`,
+      { params: { api_token: API_TOKEN } }
+    );
+
+    res.json({
+      success: true,
+      status: data.data.status,
+      paid: data.data.status === 'paid',
+      paid_at: data.data.paid_at
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: 'Erro ao consultar transação'
+    });
+  }
+});
+
+// 3. Webhook de Confirmação
+app.post('/webhook/klivopay', async (req, res) => {
+  try {
+    const { transaction_hash, status, customer, payment_method } = req.body;
+
+    console.log(`Webhook PIX recebido: ${transaction_hash} - ${status}`);
+
+    // Verificar se é pagamento PIX
+    if (payment_method === 'pix' && status === 'paid') {
+      // Liberar acesso
+      await grantAccess(customer.email);
+
+      // Enviar email
+      await sendPixConfirmationEmail(customer.email, transaction_hash);
+
+      console.log(`PIX confirmado para: ${customer.email}`);
+    }
+
+    res.status(200).send('OK');
+
+  } catch (error) {
+    console.error('Erro no webhook:', error);
+    res.status(500).send('Error');
+  }
+});
+
+async function grantAccess(email) {
+  console.log(`Liberando acesso para: ${email}`);
+  // Implementar lógica de acesso
+}
+
+async function sendPixConfirmationEmail(email, transactionHash) {
+  console.log(`Enviando email de confirmação PIX para: ${email}`);
+  // Implementar envio de email
+}
+
+app.listen(3000, () => {
+  console.log('Servidor rodando na porta 3000');
+});
+```
+
+## Frontend (React)
+
+```jsx
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+
+function PixCheckout({ productHash, customer }) {
+  const [loading, setLoading] = useState(false);
+  const [pixData, setPixData] = useState(null);
+  const [paymentStatus, setPaymentStatus] = useState('pending');
+
+  // Criar transação PIX
+  const handlePixPayment = async () => {
+    setLoading(true);
+
+    try {
+      const { data } = await axios.post('/api/checkout/pix', {
+        productHash,
+        customer
+      });
+
+      setPixData(data.pix);
+
+      // Iniciar verificação periódica
+      startStatusCheck(data.transaction_hash);
+
+    } catch (error) {
+      alert('Erro ao gerar PIX');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Verificar status periodicamente
+  const startStatusCheck = (transactionHash) => {
+    const interval = setInterval(async () => {
+      try {
+        const { data } = await axios.get(
+          `/api/transactions/${transactionHash}/status`
+        );
+
+        if (data.paid) {
+          setPaymentStatus('paid');
+          clearInterval(interval);
+
+          // Redirecionar para página de sucesso
+          window.location.href = '/payment/success';
+        }
+      } catch (error) {
+        console.error('Erro ao verificar status:', error);
+      }
+    }, 5000); // Verifica a cada 5 segundos
+
+    // Limpar após 10 minutos
+    setTimeout(() => clearInterval(interval), 600000);
+  };
+
+  if (loading) {
+    return <div>Gerando QR Code PIX...</div>;
+  }
+
+  if (!pixData) {
+    return (
+      <button onClick={handlePixPayment}>
+        Pagar com PIX
+      </button>
+    );
+  }
+
+  return (
+    <div className="pix-checkout">
+      <h2>Pagamento via PIX</h2>
+
+      {paymentStatus === 'pending' && (
+        <>
+          <div className="qr-code">
+            <img
+              src={pixData.qr_code_image}
+              alt="QR Code PIX"
+              style={{ width: 300, height: 300 }}
+            />
+          </div>
+
+          <div className="pix-instructions">
+            <h3>Como pagar:</h3>
+            <ol>
+              <li>Abra o app do seu banco</li>
+              <li>Escolha pagar via PIX</li>
+              <li>Escaneie o QR Code acima</li>
+              <li>Confirme o pagamento</li>
+            </ol>
+          </div>
+
+          <div className="pix-code">
+            <p>Ou copie o código PIX:</p>
+            <input
+              type="text"
+              value={pixData.qr_code}
+              readOnly
+              style={{ width: '100%', padding: 10 }}
+            />
+            <button onClick={() => {
+              navigator.clipboard.writeText(pixData.qr_code);
+              alert('Código copiado!');
+            }}>
+              Copiar Código
+            </button>
+          </div>
+
+          <div className="expires-at">
+            <p>Expira em: {new Date(pixData.expires_at).toLocaleString()}</p>
+          </div>
+
+          <div className="status">
+            <p>Aguardando pagamento... (verificando automaticamente)</p>
+          </div>
+        </>
+      )}
+
+      {paymentStatus === 'paid' && (
+        <div className="success">
+          <h3>Pagamento Confirmado!</h3>
+          <p>Redirecionando...</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default PixCheckout;
+```
+
+## Observações Importantes
+
+<Warning>
+  **Não use polling em produção!** Prefira webhooks para notificações em tempo real. Polling é apenas para casos onde webhooks não são possíveis.
+</Warning>
+
+<Info>
+  **Expiração**: Por padrão, PIX expira em 1 dia. Configure `expire_in_days` conforme necessário.
+</Info>
+
+<Note>
+  **QR Code**: A Klivopay já fornece URL da imagem do QR Code. Você pode usá-la diretamente ou gerar localmente com o código PIX.
+</Note>
+
+## Melhorias para Produção
+
+1. **Use WebSockets** em vez de polling para notificação instantânea
+2. **Cache o QR Code** para evitar recriações desnecessárias
+3. **Timeout visual** mostrando contagem regressiva da expiração
+4. **Notificações push** quando o pagamento for confirmado
+
+## Próximos Passos
+
+<CardGroup cols={2}>
+  <Card title="Webhooks" icon="webhook" href="/pages/start/webhooks">
+    Implemente webhooks para notificações
+  </Card>
+
+  <Card title="Criar Transação" icon="credit-card" href="/pages/transacoes/create">
+    Documentação completa da API
+  </Card>
+</CardGroup>

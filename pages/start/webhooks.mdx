@@ -1,0 +1,722 @@
+---
+title: "Webhooks"
+description: "Receba notificações em tempo real sobre transações e eventos"
+---
+
+# Webhooks (Postbacks)
+
+Webhooks permitem que sua aplicação receba notificações automáticas quando eventos importantes ocorrem na Klivopay, como mudanças no status de transações.
+
+## O que são Webhooks?
+
+Webhooks são chamadas HTTP POST enviadas pela Klivopay para um endpoint da sua aplicação quando um evento ocorre. Isso elimina a necessidade de ficar consultando (polling) a API constantemente.
+
+### Casos de Uso
+
+- Liberar acesso a produtos após confirmação de pagamento
+- Notificar clientes sobre status de pagamento
+- Atualizar sistemas internos automaticamente
+- Registrar logs de transações
+- Processar reembolsos
+
+## Configurando Webhooks
+
+### Ao Criar Transação
+
+Inclua o campo `postback_url` ao criar uma transação:
+
+<CodeGroup>
+```json Request
+{
+  "amount": 29700,
+  "payment_method": "credit_card",
+  "customer": {
+    "name": "João Silva",
+    "email": "joao@email.com"
+  },
+  "cart": [...],
+  "postback_url": "https://seu-dominio.com/webhook/klivopay"
+}
+```
+
+```bash cURL
+curl -X POST "https://api.klivopay.com.br/api/public/v1/transactions?api_token=SEU_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "amount": 29700,
+    "payment_method": "pix",
+    "postback_url": "https://seu-dominio.com/webhook/klivopay",
+    ...
+  }'
+```
+</CodeGroup>
+
+<Note>
+  A `postback_url` deve ser um endpoint HTTPS público e acessível pela internet.
+</Note>
+
+## Estrutura do Webhook
+
+### Payload Recebido
+
+A Klivopay envia um POST com JSON contendo os dados da transação:
+
+```json
+{
+  "event": "transaction.status_changed",
+  "transaction_hash": "abc123xyz",
+  "status": "paid",
+  "previous_status": "pending",
+  "amount": 29700,
+  "payment_method": "credit_card",
+  "installments": 3,
+  "paid_at": "2026-03-16T11:30:00Z",
+  "customer": {
+    "name": "João Silva",
+    "email": "joao@email.com",
+    "document": "12345678900"
+  },
+  "cart": [
+    {
+      "product_hash": "7tjdfkshdv",
+      "title": "Curso de Desenvolvimento Web",
+      "price": 29700,
+      "quantity": 1
+    }
+  ],
+  "metadata": {
+    "user_id": "user123",
+    "order_id": "order456"
+  },
+  "timestamp": "2026-03-16T11:30:05Z"
+}
+```
+
+### Campos Principais
+
+| Campo | Tipo | Descrição |
+|-------|------|-----------|
+| `event` | String | Tipo do evento |
+| `transaction_hash` | String | Hash único da transação |
+| `status` | String | Status atual da transação |
+| `previous_status` | String | Status anterior |
+| `amount` | Integer | Valor em centavos |
+| `payment_method` | String | Método de pagamento |
+| `paid_at` | String | Data/hora do pagamento |
+| `customer` | Object | Dados do cliente |
+| `cart` | Array | Itens do carrinho |
+| `timestamp` | String | Data/hora do evento |
+
+## Status de Transações
+
+Os webhooks são enviados quando o status muda:
+
+| Status | Descrição | Ação Recomendada |
+|--------|-----------|------------------|
+| `pending` | Aguardando pagamento | Aguardar |
+| `paid` | Pagamento confirmado | **Liberar acesso** |
+| `refunded` | Reembolsado | **Revogar acesso** |
+| `failed` | Falhou | Notificar cliente |
+| `canceled` | Cancelado | Registrar cancelamento |
+| `expired` | Expirado (PIX) | Notificar cliente |
+
+## Implementando o Endpoint
+
+### Node.js / Express
+
+<CodeGroup>
+```javascript Básico
+const express = require('express');
+const app = express();
+
+app.use(express.json());
+
+app.post('/webhook/klivopay', (req, res) => {
+  const {
+    event,
+    transaction_hash,
+    status,
+    customer,
+    cart
+  } = req.body;
+
+  console.log(`Webhook recebido: ${event}`);
+  console.log(`Transação: ${transaction_hash}`);
+  console.log(`Status: ${status}`);
+
+  // Processar o webhook
+  if (status === 'paid') {
+    // Liberar acesso ao produto
+    grantAccess(customer.email, cart);
+  } else if (status === 'refunded') {
+    // Revogar acesso
+    revokeAccess(customer.email, cart);
+  }
+
+  // IMPORTANTE: Retornar 200 OK
+  res.status(200).send('OK');
+});
+
+app.listen(3000, () => {
+  console.log('Servidor rodando na porta 3000');
+});
+```
+
+```javascript Com Validação
+app.post('/webhook/klivopay', async (req, res) => {
+  try {
+    const { transaction_hash, status, customer, cart } = req.body;
+
+    // Validar dados
+    if (!transaction_hash || !status) {
+      return res.status(400).json({ error: 'Invalid payload' });
+    }
+
+    // Verificar se já processou este evento (idempotência)
+    const alreadyProcessed = await checkIfProcessed(transaction_hash, status);
+    if (alreadyProcessed) {
+      return res.status(200).send('Already processed');
+    }
+
+    // Consultar transação na API para confirmar
+    const transaction = await klivopayAPI.getTransaction(transaction_hash);
+
+    if (transaction.status !== status) {
+      console.error('Status mismatch!');
+      return res.status(400).json({ error: 'Status mismatch' });
+    }
+
+    // Processar baseado no status
+    switch (status) {
+      case 'paid':
+        await grantAccess(customer.email, cart);
+        await sendConfirmationEmail(customer.email);
+        break;
+
+      case 'refunded':
+        await revokeAccess(customer.email, cart);
+        await sendRefundEmail(customer.email);
+        break;
+
+      case 'failed':
+        await sendFailureEmail(customer.email);
+        break;
+    }
+
+    // Marcar como processado
+    await markAsProcessed(transaction_hash, status);
+
+    res.status(200).send('OK');
+
+  } catch (error) {
+    console.error('Webhook error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+```
+</CodeGroup>
+
+### Python / Flask
+
+<CodeGroup>
+```python Básico
+from flask import Flask, request, jsonify
+
+app = Flask(__name__)
+
+@app.route('/webhook/klivopay', methods=['POST'])
+def klivopay_webhook():
+    data = request.get_json()
+
+    transaction_hash = data.get('transaction_hash')
+    status = data.get('status')
+    customer = data.get('customer')
+    cart = data.get('cart')
+
+    print(f'Webhook recebido: {transaction_hash}')
+    print(f'Status: {status}')
+
+    if status == 'paid':
+        grant_access(customer['email'], cart)
+    elif status == 'refunded':
+        revoke_access(customer['email'], cart)
+
+    return 'OK', 200
+
+if __name__ == '__main__':
+    app.run(port=3000)
+```
+
+```python Com Validação
+from flask import Flask, request, jsonify
+import requests
+
+app = Flask(__name__)
+
+@app.route('/webhook/klivopay', methods=['POST'])
+def klivopay_webhook():
+    try:
+        data = request.get_json()
+
+        transaction_hash = data.get('transaction_hash')
+        status = data.get('status')
+
+        if not transaction_hash or not status:
+            return jsonify({'error': 'Invalid payload'}), 400
+
+        # Verificar idempotência
+        if check_if_processed(transaction_hash, status):
+            return 'Already processed', 200
+
+        # Confirmar com a API
+        transaction = get_transaction_from_api(transaction_hash)
+
+        if transaction['status'] != status:
+            return jsonify({'error': 'Status mismatch'}), 400
+
+        # Processar
+        if status == 'paid':
+            grant_access(data['customer']['email'], data['cart'])
+            send_confirmation_email(data['customer']['email'])
+        elif status == 'refunded':
+            revoke_access(data['customer']['email'], data['cart'])
+
+        mark_as_processed(transaction_hash, status)
+
+        return 'OK', 200
+
+    except Exception as e:
+        print(f'Webhook error: {e}')
+        return jsonify({'error': 'Internal server error'}), 500
+```
+</CodeGroup>
+
+### PHP
+
+<CodeGroup>
+```php Básico
+<?php
+
+// webhook.php
+
+$payload = file_get_contents('php://input');
+$data = json_decode($payload, true);
+
+$transactionHash = $data['transaction_hash'] ?? null;
+$status = $data['status'] ?? null;
+$customer = $data['customer'] ?? null;
+$cart = $data['cart'] ?? null;
+
+error_log("Webhook recebido: $transactionHash");
+error_log("Status: $status");
+
+if ($status === 'paid') {
+    grantAccess($customer['email'], $cart);
+} elseif ($status === 'refunded') {
+    revokeAccess($customer['email'], $cart);
+}
+
+http_response_code(200);
+echo 'OK';
+```
+
+```php Com Validação
+<?php
+
+$payload = file_get_contents('php://input');
+$data = json_decode($payload, true);
+
+try {
+    $transactionHash = $data['transaction_hash'] ?? null;
+    $status = $data['status'] ?? null;
+
+    if (!$transactionHash || !$status) {
+        http_response_code(400);
+        die('Invalid payload');
+    }
+
+    // Verificar idempotência
+    if (checkIfProcessed($transactionHash, $status)) {
+        http_response_code(200);
+        die('Already processed');
+    }
+
+    // Confirmar com API
+    $transaction = getTransactionFromAPI($transactionHash);
+
+    if ($transaction['status'] !== $status) {
+        http_response_code(400);
+        die('Status mismatch');
+    }
+
+    // Processar
+    switch ($status) {
+        case 'paid':
+            grantAccess($data['customer']['email'], $data['cart']);
+            sendConfirmationEmail($data['customer']['email']);
+            break;
+
+        case 'refunded':
+            revokeAccess($data['customer']['email'], $data['cart']);
+            break;
+    }
+
+    markAsProcessed($transactionHash, $status);
+
+    http_response_code(200);
+    echo 'OK';
+
+} catch (Exception $e) {
+    error_log("Webhook error: " . $e->getMessage());
+    http_response_code(500);
+    echo 'Internal server error';
+}
+```
+</CodeGroup>
+
+## Boas Práticas
+
+### 1. Retorne 200 OK Rapidamente
+
+<Warning>
+  Sempre retorne `200 OK` o mais rápido possível. Processe tarefas pesadas de forma assíncrona.
+</Warning>
+
+```javascript
+// ✅ Correto
+app.post('/webhook/klivopay', (req, res) => {
+  // Retornar 200 imediatamente
+  res.status(200).send('OK');
+
+  // Processar assincronamente
+  processWebhookAsync(req.body);
+});
+
+// ❌ Incorreto
+app.post('/webhook/klivopay', async (req, res) => {
+  await longRunningTask(); // Não faça isso!
+  res.status(200).send('OK');
+});
+```
+
+### 2. Implemente Idempotência
+
+Webhooks podem ser enviados múltiplas vezes. Garanta que processar o mesmo webhook duas vezes não cause problemas:
+
+```javascript
+const processedWebhooks = new Set();
+
+app.post('/webhook/klivopay', (req, res) => {
+  const { transaction_hash, status } = req.body;
+  const webhookId = `${transaction_hash}-${status}`;
+
+  if (processedWebhooks.has(webhookId)) {
+    return res.status(200).send('Already processed');
+  }
+
+  processedWebhooks.add(webhookId);
+
+  // Processar webhook...
+
+  res.status(200).send('OK');
+});
+```
+
+### 3. Valide o Webhook
+
+Sempre valide os dados e, se possível, confirme com a API:
+
+```javascript
+async function validateWebhook(webhookData) {
+  const { transaction_hash, status } = webhookData;
+
+  // Consultar transação na API
+  const transaction = await klivopayAPI.getTransaction(transaction_hash);
+
+  // Verificar se o status corresponde
+  if (transaction.status !== status) {
+    throw new Error('Status mismatch - possible fraud attempt');
+  }
+
+  return true;
+}
+```
+
+### 4. Use Filas para Processamento
+
+Para maior confiabilidade, use filas (Redis, RabbitMQ, etc.):
+
+```javascript
+const Queue = require('bull');
+const webhookQueue = new Queue('klivopay-webhooks');
+
+app.post('/webhook/klivopay', async (req, res) => {
+  // Adicionar à fila
+  await webhookQueue.add(req.body);
+
+  // Retornar 200 imediatamente
+  res.status(200).send('OK');
+});
+
+// Processar fila em outro processo
+webhookQueue.process(async (job) => {
+  const webhookData = job.data;
+  await processWebhook(webhookData);
+});
+```
+
+### 5. Implemente Logs e Monitoramento
+
+Registre todos os webhooks recebidos:
+
+```javascript
+app.post('/webhook/klivopay', (req, res) => {
+  // Log estruturado
+  logger.info('Webhook received', {
+    transaction_hash: req.body.transaction_hash,
+    status: req.body.status,
+    timestamp: new Date().toISOString()
+  });
+
+  // Processar...
+
+  res.status(200).send('OK');
+});
+```
+
+## Retry e Tratamento de Erros
+
+### Política de Retry da Klivopay
+
+A Klivopay tentará reenviar webhooks que falharem:
+
+- **Tentativas**: Até 5 tentativas
+- **Intervalo**: Exponencial (1min, 5min, 15min, 1h, 6h)
+- **Timeout**: 30 segundos por tentativa
+
+### Como Lidar com Falhas
+
+```javascript
+app.post('/webhook/klivopay', async (req, res) => {
+  try {
+    await processWebhook(req.body);
+    res.status(200).send('OK');
+
+  } catch (error) {
+    logger.error('Webhook processing failed', {
+      error: error.message,
+      transaction: req.body.transaction_hash
+    });
+
+    // Retornar 500 para Klivopay tentar novamente
+    res.status(500).send('Processing failed');
+  }
+});
+```
+
+## Testando Webhooks
+
+### Usando Ferramentas de Teste
+
+<AccordionGroup>
+  <Accordion title="ngrok">
+    Exponha seu localhost para testes:
+
+    ```bash
+    ngrok http 3000
+    ```
+
+    Use a URL gerada como `postback_url`:
+    ```
+    https://abc123.ngrok.io/webhook/klivopay
+    ```
+  </Accordion>
+
+  <Accordion title="Webhook.site">
+    Use [webhook.site](https://webhook.site) para inspecionar payloads:
+
+    ```json
+    {
+      "postback_url": "https://webhook.site/seu-uuid"
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="RequestBin">
+    Similar ao Webhook.site, use [requestbin.com](https://requestbin.com)
+  </Accordion>
+</AccordionGroup>
+
+### Simulando Webhooks Localmente
+
+```bash
+curl -X POST http://localhost:3000/webhook/klivopay \
+  -H "Content-Type: application/json" \
+  -d '{
+    "event": "transaction.status_changed",
+    "transaction_hash": "test123",
+    "status": "paid",
+    "amount": 29700,
+    "customer": {
+      "name": "Teste",
+      "email": "teste@email.com"
+    },
+    "cart": [],
+    "timestamp": "2026-03-16T12:00:00Z"
+  }'
+```
+
+## Segurança
+
+### Recomendações
+
+<AccordionGroup>
+  <Accordion title="Use HTTPS">
+    Sempre use HTTPS para o endpoint de webhook:
+
+    ```
+    ✅ https://seu-dominio.com/webhook/klivopay
+    ❌ http://seu-dominio.com/webhook/klivopay
+    ```
+  </Accordion>
+
+  <Accordion title="Valide a Origem (Futuro)">
+    Se a Klivopay implementar assinaturas, valide:
+
+    ```javascript
+    const signature = req.headers['x-klivopay-signature'];
+    const isValid = validateSignature(req.body, signature);
+
+    if (!isValid) {
+      return res.status(403).send('Invalid signature');
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="Use URLs Secretas">
+    Adicione um token secreto à URL:
+
+    ```
+    https://seu-dominio.com/webhook/klivopay?secret=abc123xyz
+    ```
+
+    Valide o token no endpoint:
+
+    ```javascript
+    if (req.query.secret !== process.env.WEBHOOK_SECRET) {
+      return res.status(403).send('Forbidden');
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Exemplo Completo de Integração
+
+<CodeGroup>
+```javascript Produção Completa
+const express = require('express');
+const axios = require('axios');
+const Queue = require('bull');
+
+const app = express();
+const webhookQueue = new Queue('klivopay-webhooks', {
+  redis: process.env.REDIS_URL
+});
+
+app.use(express.json());
+
+// Endpoint de webhook
+app.post('/webhook/klivopay', async (req, res) => {
+  try {
+    // Validar secret
+    if (req.query.secret !== process.env.WEBHOOK_SECRET) {
+      return res.status(403).send('Forbidden');
+    }
+
+    // Adicionar à fila
+    await webhookQueue.add(req.body, {
+      attempts: 3,
+      backoff: {
+        type: 'exponential',
+        delay: 2000
+      }
+    });
+
+    // Retornar 200 imediatamente
+    res.status(200).send('OK');
+
+  } catch (error) {
+    console.error('Webhook error:', error);
+    res.status(500).send('Internal error');
+  }
+});
+
+// Processar fila
+webhookQueue.process(async (job) => {
+  const data = job.data;
+
+  // Verificar se já foi processado
+  const processed = await db.webhooks.findOne({
+    transaction_hash: data.transaction_hash,
+    status: data.status
+  });
+
+  if (processed) {
+    return { message: 'Already processed' };
+  }
+
+  // Validar com API
+  const transaction = await axios.get(
+    `https://api.klivopay.com.br/api/public/v1/transactions/${data.transaction_hash}?api_token=${process.env.KLIVOPAY_TOKEN}`
+  );
+
+  if (transaction.data.status !== data.status) {
+    throw new Error('Status mismatch');
+  }
+
+  // Processar baseado no status
+  switch (data.status) {
+    case 'paid':
+      await grantAccess(data.customer.email, data.cart);
+      await sendEmail(data.customer.email, 'payment_confirmed');
+      break;
+
+    case 'refunded':
+      await revokeAccess(data.customer.email, data.cart);
+      await sendEmail(data.customer.email, 'refund_processed');
+      break;
+  }
+
+  // Marcar como processado
+  await db.webhooks.create({
+    transaction_hash: data.transaction_hash,
+    status: data.status,
+    processed_at: new Date()
+  });
+
+  return { message: 'Processed successfully' };
+});
+
+app.listen(3000);
+```
+</CodeGroup>
+
+## Próximos Passos
+
+<CardGroup cols={2}>
+  <Card title="Criar Transação" icon="credit-card" href="/pages/transacoes/create">
+    Aprenda a criar transações com webhooks
+  </Card>
+
+  <Card title="Exemplos" icon="code" href="/pages/examples/payment-flow">
+    Veja fluxos completos de pagamento
+  </Card>
+
+  <Card title="Códigos de Status" icon="list" href="/pages/reference/status-codes">
+    Entenda os status de transação
+  </Card>
+
+  <Card title="Tratamento de Erros" icon="bug" href="/pages/reference/errors">
+    Aprenda a lidar com erros
+  </Card>
+</CardGroup>
