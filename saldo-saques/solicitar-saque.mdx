@@ -1,0 +1,161 @@
+---
+title: "Solicitar Saque"
+api: "POST /transfers"
+description: "Solicita uma transferência do saldo disponível para conta bancária"
+---
+
+## Visão Geral
+
+Este endpoint permite solicitar a transferência de valores do seu saldo disponível na KlivoPay para sua conta bancária cadastrada.
+
+<Warning>
+  Valor mínimo para saque: **R$ 10,00** (1000 centavos)
+</Warning>
+
+## Endpoint
+
+```
+POST https://api.klivopay.com.br/api/public/v1/transfers
+```
+
+## Parâmetros
+
+<ParamField body="api_token" type="string" required>
+  Seu token de autenticação da API KlivoPay
+</ParamField>
+
+<ParamField body="amount" type="integer" required>
+  Valor da transferência em centavos. Mínimo: 1000 (R$ 10,00)
+</ParamField>
+
+## Exemplo de Requisição
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST 'https://api.klivopay.com.br/api/public/v1/transfers' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "api_token": "seu_token_aqui",
+    "amount": 50000
+  }'
+```
+
+```javascript JavaScript
+const response = await fetch('https://api.klivopay.com.br/api/public/v1/transfers', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    api_token: 'seu_token_aqui',
+    amount: 50000
+  })
+});
+
+const data = await response.json();
+console.log(data);
+```
+
+```python Python
+import requests
+
+url = 'https://api.klivopay.com.br/api/public/v1/transfers'
+payload = {
+    'api_token': 'seu_token_aqui',
+    'amount': 50000
+}
+
+response = requests.post(url, json=payload)
+print(response.json())
+```
+
+```php PHP
+<?php
+$url = 'https://api.klivopay.com.br/api/public/v1/transfers';
+$data = [
+    'api_token' => 'seu_token_aqui',
+    'amount' => 50000
+];
+
+$options = [
+    'http' => [
+        'header'  => "Content-Type: application/json\r\n",
+        'method'  => 'POST',
+        'content' => json_encode($data)
+    ]
+];
+
+$context = stream_context_create($options);
+$result = file_get_contents($url, false, $context);
+print_r(json_decode($result));
+?>
+```
+
+</CodeGroup>
+
+## Resposta de Sucesso
+
+```json 201 Created
+{
+  "success": true,
+  "data": {
+    "hash": "transfer123abc",
+    "amount": 50000,
+    "status": "pending",
+    "bank_account": {
+      "type": "checking",
+      "bank_code": "001",
+      "agency": "1234",
+      "account_number": "12345-6",
+      "holder_name": "João Silva"
+    },
+    "created_at": "2025-01-20T10:15:00Z",
+    "estimated_completion": "2025-01-21T10:15:00Z"
+  }
+}
+```
+
+## Códigos de Resposta
+
+<ResponseField name="201" type="Created">
+  Saque solicitado com sucesso
+</ResponseField>
+
+<ResponseField name="400" type="Bad Request">
+  Dados inválidos ou saldo insuficiente
+</ResponseField>
+
+<ResponseField name="401" type="Unauthorized">
+  Token de API inválido ou ausente
+</ResponseField>
+
+<ResponseField name="422" type="Unprocessable Entity">
+  Valor abaixo do mínimo permitido (R$ 10,00)
+</ResponseField>
+
+<ResponseField name="500" type="Internal Server Error">
+  Erro interno do servidor
+</ResponseField>
+
+## Status do Saque
+
+<AccordionGroup>
+  <Accordion title="pending">
+    Saque solicitado e aguardando processamento
+  </Accordion>
+
+  <Accordion title="processing">
+    Transferência em processamento pelo banco
+  </Accordion>
+
+  <Accordion title="completed">
+    Transferência concluída com sucesso
+  </Accordion>
+
+  <Accordion title="failed">
+    Transferência falhou (verifique dados bancários)
+  </Accordion>
+</AccordionGroup>
+
+<Note>
+  O prazo para processamento varia de acordo com o tipo de conta bancária cadastrada e pode levar de 1 a 3 dias úteis.
+</Note>

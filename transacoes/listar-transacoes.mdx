@@ -1,0 +1,149 @@
+---
+title: "Listar Transações"
+api: "GET /transactions"
+description: "Lista todas as transações da conta com opções de filtro e paginação"
+---
+
+## Visão Geral
+
+Este endpoint permite listar todas as transações da sua conta, com opções de filtro por status e paginação para facilitar a navegação e geração de relatórios.
+
+## Endpoint
+
+```
+GET https://api.klivopay.com.br/api/public/v1/transactions
+```
+
+## Parâmetros
+
+<ParamField query="api_token" type="string" required>
+  Seu token de autenticação da API KlivoPay
+</ParamField>
+
+<ParamField query="page" type="integer" default="1">
+  Número da página para paginação
+</ParamField>
+
+<ParamField query="per_page" type="integer" default="20">
+  Quantidade de itens por página (máximo: 100)
+</ParamField>
+
+<ParamField query="status" type="string">
+  Filtrar por status da transação:
+  - `pending` - Aguardando pagamento
+  - `paid` - Pago
+  - `canceled` - Cancelado
+  - `refunded` - Reembolsado
+</ParamField>
+
+## Exemplo de Requisição
+
+<CodeGroup>
+
+```bash cURL
+curl -X GET 'https://api.klivopay.com.br/api/public/v1/transactions?api_token=seu_token_aqui&page=1&per_page=20&status=paid'
+```
+
+```javascript JavaScript
+const params = new URLSearchParams({
+  api_token: 'seu_token_aqui',
+  page: 1,
+  per_page: 20,
+  status: 'paid'
+});
+
+const response = await fetch(`https://api.klivopay.com.br/api/public/v1/transactions?${params}`);
+const data = await response.json();
+console.log(data);
+```
+
+```python Python
+import requests
+
+url = 'https://api.klivopay.com.br/api/public/v1/transactions'
+params = {
+    'api_token': 'seu_token_aqui',
+    'page': 1,
+    'per_page': 20,
+    'status': 'paid'
+}
+
+response = requests.get(url, params=params)
+print(response.json())
+```
+
+```php PHP
+<?php
+$params = http_build_query([
+    'api_token' => 'seu_token_aqui',
+    'page' => 1,
+    'per_page' => 20,
+    'status' => 'paid'
+]);
+
+$url = 'https://api.klivopay.com.br/api/public/v1/transactions?' . $params;
+$response = file_get_contents($url);
+$data = json_decode($response);
+print_r($data);
+?>
+```
+
+</CodeGroup>
+
+## Resposta de Sucesso
+
+```json 200 OK
+{
+  "success": true,
+  "data": [
+    {
+      "hash": "abc123def456",
+      "status": "paid",
+      "amount": 15000,
+      "payment_method": "pix",
+      "customer": {
+        "name": "João Silva",
+        "email": "joao@example.com"
+      },
+      "created_at": "2025-01-20T10:15:00Z",
+      "paid_at": "2025-01-20T10:20:00Z"
+    },
+    {
+      "hash": "def789ghi012",
+      "status": "paid",
+      "amount": 25000,
+      "payment_method": "credit_card",
+      "customer": {
+        "name": "Maria Santos",
+        "email": "maria@example.com"
+      },
+      "created_at": "2025-01-19T14:30:00Z",
+      "paid_at": "2025-01-19T14:30:15Z"
+    }
+  ],
+  "meta": {
+    "current_page": 1,
+    "per_page": 20,
+    "total": 45,
+    "total_pages": 3
+  }
+}
+```
+
+## Códigos de Resposta
+
+<ResponseField name="200" type="OK">
+  Lista de transações retornada com sucesso
+</ResponseField>
+
+<ResponseField name="401" type="Unauthorized">
+  Token de API inválido ou ausente
+</ResponseField>
+
+<ResponseField name="500" type="Internal Server Error">
+  Erro interno do servidor
+</ResponseField>
+
+<Info>
+  Use este endpoint para gerar relatórios, fazer conciliações financeiras e acompanhar o histórico de vendas.
+</Info>

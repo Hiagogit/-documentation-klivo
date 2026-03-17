@@ -1,0 +1,144 @@
+---
+title: "Visão Geral"
+description: "Integre facilmente soluções de pagamento em sua aplicação com nossa API RESTful segura e confiável"
+---
+
+# API Pública KlivoPay
+
+Integre facilmente soluções de pagamento em sua aplicação com nossa API RESTful segura e confiável.
+
+<CardGroup cols={2}>
+  <Card title="API v1.0 Ativa" icon="check-circle">
+    Versão estável em produção
+  </Card>
+  <Card title="PCI DSS Certificado" icon="shield-check">
+    Segurança certificada
+  </Card>
+  <Card title="100% Uptime" icon="server">
+    Disponibilidade garantida
+  </Card>
+  <Card title="Autenticação Segura" icon="lock">
+    Tokens criptografados
+  </Card>
+</CardGroup>
+
+## Principais Recursos
+
+<AccordionGroup>
+  <Accordion title="Autenticação Segura">
+    Tokens de API únicos com criptografia avançada e rate limiting para proteger suas integrações contra acessos não autorizados.
+  </Accordion>
+
+  <Accordion title="API RESTful">
+    Interface REST padronizada com JSON, fácil de integrar e usar em qualquer linguagem.
+  </Accordion>
+
+  <Accordion title="Tempo Real">
+    Webhooks e notificações em tempo real para manter sua aplicação sempre atualizada.
+  </Accordion>
+</AccordionGroup>
+
+## Começando em 3 Passos
+
+Configure sua integração em minutos
+
+<Steps>
+  <Step title="Obtenha seu Token de API">
+    Acesse sua conta KlivoPay, vá até as configurações de API e gere seu token de acesso.
+  </Step>
+
+  <Step title="Configure sua Aplicação">
+    Use a URL base `https://api.klivopay.com.br/api` e inclua seu token em todas as requisições.
+  </Step>
+
+  <Step title="Faça sua Primeira Transação">
+    Teste com o endpoint de criação de transação e comece a processar pagamentos imediatamente.
+  </Step>
+</Steps>
+
+## Conceitos Fundamentais
+
+### Transações
+
+Representam operações financeiras como pagamentos, reembolsos e consultas. Cada transação possui um identificador único (hash) e passa por diferentes status durante seu ciclo de vida.
+
+<Note>
+  **Exemplo:** `POST /transactions` para criar um novo pagamento
+</Note>
+
+### Produtos e Ofertas
+
+Produtos são itens que você vende, enquanto ofertas são configurações específicas de preço e condições para esses produtos. Um produto pode ter múltiplas ofertas.
+
+<Note>
+  **Exemplo:** `GET /products` para listar seus produtos
+</Note>
+
+### Saldo e Saques
+
+Consulte seu saldo disponível e solicite transferências para sua conta bancária. O sistema processa saques automaticamente respeitando os prazos estabelecidos.
+
+<Note>
+  **Exemplo:** `GET /balance` para consultar saldo atual
+</Note>
+
+### Contas Bancárias
+
+Gerencie suas informações bancárias para recebimento de pagamentos. Suporte para contas correntes, poupança e chaves PIX.
+
+<Note>
+  **Exemplo:** `POST /bank-accounts` para cadastrar conta
+</Note>
+
+## HTTP e Segurança
+
+### Comunicação Criptografada
+
+Todas as requisições utilizam TLS 1.3 com criptografia de ponta a ponta. Headers de segurança obrigatórios e validação rigorosa de dados garantem máxima proteção em todas as comunicações.
+
+<CardGroup cols={3}>
+  <Card title="Autenticação" icon="key">
+    Use o parâmetro `api_token` em todas as requisições.
+  </Card>
+  <Card title="Formato de Dados" icon="code">
+    Todas as requisições e respostas usam JSON. Valores monetários são em centavos.
+  </Card>
+  <Card title="Rate Limiting" icon="gauge">
+    Máximo de 1000 requisições por minuto. Headers de limite são retornados nas respostas.
+  </Card>
+</CardGroup>
+
+## URL Base da API
+
+```
+https://api.klivopay.com.br/api/public/v1
+```
+
+Todas as requisições devem ser feitas para esta URL base seguida do endpoint específico.
+
+## Tokens de Acesso
+
+<CardGroup cols={2}>
+  <Card title="Produção" icon="rocket">
+    Use seu token real obtido no painel da KlivoPay
+  </Card>
+  <Card title="Sandbox" icon="flask">
+    Disponível para testes sem processamento real
+  </Card>
+</CardGroup>
+
+## Configuração de Postback
+
+Configure uma URL em sua aplicação para receber notificações automáticas sobre mudanças no status das transações.
+
+**Exemplo de payload recebido:**
+
+```json
+{
+  "transaction_hash": "abc123def456",
+  "status": "paid",
+  "amount": 15000,
+  "payment_method": "pix",
+  "paid_at": "2025-01-20T10:15:00Z"
+}
+```

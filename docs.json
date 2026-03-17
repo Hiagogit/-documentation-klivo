@@ -1,16 +1,54 @@
 {
   "$schema": "https://mintlify.com/docs.json",
   "theme": "mint",
-  "name": "Documentation",
+  "name": "KlivoPay API Documentation",
   "colors": {
     "primary": "#0D9373"
   },
   "navigation": {
     "groups": [
       {
-        "group": "Getting Started",
+        "group": "Visão Geral",
         "pages": [
-          "boas-vindas"
+          "visao-geral"
+        ]
+      },
+      {
+        "group": "Transações",
+        "pages": [
+          "transacoes/criar-transacao",
+          "transacoes/listar-transacoes",
+          "transacoes/consultar-transacao",
+          "transacoes/reembolsar-transacao"
+        ]
+      },
+      {
+        "group": "Produtos",
+        "pages": [
+          "produtos/listar-produtos",
+          "produtos/consultar-produto",
+          "produtos/criar-produto",
+          "produtos/atualizar-produto",
+          "produtos/listar-categorias",
+          "produtos/criar-oferta",
+          "produtos/atualizar-oferta"
+        ]
+      },
+      {
+        "group": "Saldo e Saques",
+        "pages": [
+          "saldo-saques/consultar-saldo",
+          "saldo-saques/solicitar-saque",
+          "saldo-saques/consultar-saque",
+          "saldo-saques/calcular-parcelas"
+        ]
+      },
+      {
+        "group": "Contas Bancária",
+        "pages": [
+          "contas-bancarias/cadastrar-conta",
+          "contas-bancarias/listar-contas",
+          "contas-bancarias/consultar-conta"
         ]
       }
     ]

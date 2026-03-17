@@ -1,0 +1,180 @@
+---
+title: "Calcular Parcelas"
+api: "GET /installments"
+description: "Calcula as opções de parcelamento para um valor específico"
+---
+
+## Visão Geral
+
+Este endpoint retorna as opções de parcelamento disponíveis para um determinado valor, incluindo juros e valor de cada parcela.
+
+## Endpoint
+
+```
+GET https://api.klivopay.com.br/api/public/v1/installments
+```
+
+## Parâmetros
+
+<ParamField query="api_token" type="string" required>
+  Seu token de autenticação da API KlivoPay
+</ParamField>
+
+<ParamField query="amount" type="integer" required>
+  Valor total em centavos para calcular o parcelamento. Exemplo: R$ 150,00 = `15000`
+</ParamField>
+
+<ParamField query="interest_type" type="string" default="simple">
+  Tipo de juros a aplicar:
+  - `simple` - Juros simples (padrão)
+  - `compound` - Juros compostos
+</ParamField>
+
+## Exemplo de Requisição
+
+<CodeGroup>
+
+```bash cURL
+curl -X GET 'https://api.klivopay.com.br/api/public/v1/installments?api_token=seu_token_aqui&amount=15000&interest_type=simple'
+```
+
+```javascript JavaScript
+const params = new URLSearchParams({
+  api_token: 'seu_token_aqui',
+  amount: 15000,
+  interest_type: 'simple'
+});
+
+const response = await fetch(
+  `https://api.klivopay.com.br/api/public/v1/installments?${params}`
+);
+const data = await response.json();
+console.log(data);
+```
+
+```python Python
+import requests
+
+url = 'https://api.klivopay.com.br/api/public/v1/installments'
+params = {
+    'api_token': 'seu_token_aqui',
+    'amount': 15000,
+    'interest_type': 'simple'
+}
+
+response = requests.get(url, params=params)
+print(response.json())
+```
+
+```php PHP
+<?php
+$params = http_build_query([
+    'api_token' => 'seu_token_aqui',
+    'amount' => 15000,
+    'interest_type' => 'simple'
+]);
+
+$url = 'https://api.klivopay.com.br/api/public/v1/installments?' . $params;
+$response = file_get_contents($url);
+print_r(json_decode($response));
+?>
+```
+
+</CodeGroup>
+
+## Resposta de Sucesso
+
+```json 200 OK
+{
+  "success": true,
+  "data": {
+    "amount": 15000,
+    "interest_type": "simple",
+    "installments": [
+      {
+        "number": 1,
+        "installment_amount": 15000,
+        "total_amount": 15000,
+        "interest_rate": 0,
+        "formatted": "1x de R$ 150,00 sem juros"
+      },
+      {
+        "number": 2,
+        "installment_amount": 7500,
+        "total_amount": 15000,
+        "interest_rate": 0,
+        "formatted": "2x de R$ 75,00 sem juros"
+      },
+      {
+        "number": 3,
+        "installment_amount": 5000,
+        "total_amount": 15000,
+        "interest_rate": 0,
+        "formatted": "3x de R$ 50,00 sem juros"
+      },
+      {
+        "number": 6,
+        "installment_amount": 2650,
+        "total_amount": 15900,
+        "interest_rate": 2.5,
+        "formatted": "6x de R$ 26,50 com juros"
+      },
+      {
+        "number": 12,
+        "installment_amount": 1425,
+        "total_amount": 17100,
+        "interest_rate": 4.5,
+        "formatted": "12x de R$ 14,25 com juros"
+      }
+    ]
+  }
+}
+```
+
+## Campos da Resposta
+
+<ResponseField name="number" type="integer">
+  Número de parcelas
+</ResponseField>
+
+<ResponseField name="installment_amount" type="integer">
+  Valor de cada parcela em centavos
+</ResponseField>
+
+<ResponseField name="total_amount" type="integer">
+  Valor total a ser pago (com juros) em centavos
+</ResponseField>
+
+<ResponseField name="interest_rate" type="number">
+  Taxa de juros aplicada (%)
+</ResponseField>
+
+<ResponseField name="formatted" type="string">
+  Texto formatado para exibição ao cliente
+</ResponseField>
+
+## Códigos de Resposta
+
+<ResponseField name="200" type="OK">
+  Cálculo realizado com sucesso
+</ResponseField>
+
+<ResponseField name="400" type="Bad Request">
+  Valor inválido para cálculo
+</ResponseField>
+
+<ResponseField name="401" type="Unauthorized">
+  Token de API inválido ou ausente
+</ResponseField>
+
+<ResponseField name="500" type="Internal Server Error">
+  Erro interno do servidor
+</ResponseField>
+
+<Info>
+  Use este endpoint para exibir as opções de parcelamento ao cliente antes de criar a transação.
+</Info>
+
+<Note>
+  As taxas de juros e número máximo de parcelas podem variar de acordo com a configuração da sua conta.
+</Note>

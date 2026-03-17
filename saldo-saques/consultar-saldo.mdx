@@ -1,0 +1,120 @@
+---
+title: "Consultar Saldo"
+api: "GET /balance"
+description: "Consulta o saldo atual da conta, incluindo valores disponíveis e bloqueados"
+---
+
+## Visão Geral
+
+Este endpoint retorna informações sobre o saldo da sua conta KlivoPay, incluindo o saldo disponível para saque e valores que ainda estão em processo.
+
+## Endpoint
+
+```
+GET https://api.klivopay.com.br/api/public/v1/balance
+```
+
+## Parâmetros
+
+<ParamField query="api_token" type="string" required>
+  Seu token de autenticação da API KlivoPay
+</ParamField>
+
+## Exemplo de Requisição
+
+<CodeGroup>
+
+```bash cURL
+curl -X GET 'https://api.klivopay.com.br/api/public/v1/balance?api_token=seu_token_aqui'
+```
+
+```javascript JavaScript
+const response = await fetch(
+  'https://api.klivopay.com.br/api/public/v1/balance?api_token=seu_token_aqui'
+);
+const data = await response.json();
+console.log(data);
+```
+
+```python Python
+import requests
+
+url = 'https://api.klivopay.com.br/api/public/v1/balance'
+params = {'api_token': 'seu_token_aqui'}
+
+response = requests.get(url, params=params)
+print(response.json())
+```
+
+```php PHP
+<?php
+$url = 'https://api.klivopay.com.br/api/public/v1/balance?api_token=seu_token_aqui';
+$response = file_get_contents($url);
+print_r(json_decode($response));
+?>
+```
+
+</CodeGroup>
+
+## Resposta de Sucesso
+
+```json 200 OK
+{
+  "success": true,
+  "data": {
+    "available_balance": 125000,
+    "pending_balance": 35000,
+    "total_balance": 160000,
+    "currency": "BRL",
+    "formatted": {
+      "available_balance": "R$ 1.250,00",
+      "pending_balance": "R$ 350,00",
+      "total_balance": "R$ 1.600,00"
+    }
+  }
+}
+```
+
+## Campos da Resposta
+
+<ResponseField name="available_balance" type="integer">
+  Saldo disponível para saque em centavos
+</ResponseField>
+
+<ResponseField name="pending_balance" type="integer">
+  Saldo bloqueado/em processamento em centavos
+</ResponseField>
+
+<ResponseField name="total_balance" type="integer">
+  Saldo total (disponível + pendente) em centavos
+</ResponseField>
+
+<ResponseField name="currency" type="string">
+  Moeda do saldo (BRL = Real Brasileiro)
+</ResponseField>
+
+<ResponseField name="formatted" type="object">
+  Valores formatados em formato monetário brasileiro
+</ResponseField>
+
+## Códigos de Resposta
+
+<ResponseField name="200" type="OK">
+  Saldo consultado com sucesso
+</ResponseField>
+
+<ResponseField name="401" type="Unauthorized">
+  Token de API inválido ou ausente
+</ResponseField>
+
+<ResponseField name="500" type="Internal Server Error">
+  Erro interno do servidor
+</ResponseField>
+
+<Info>
+  O saldo disponível (`available_balance`) é o valor que pode ser solicitado para saque imediatamente.
+</Info>
+
+<Note>
+  Valores são sempre retornados em centavos. R$ 1.250,00 = `125000` centavos.
+</Note>

@@ -1,0 +1,161 @@
+---
+title: "Criar Oferta"
+api: "POST /products/{hash}/offers"
+description: "Cadastra uma nova oferta para um produto específico"
+---
+
+## Visão Geral
+
+Ofertas são configurações específicas de preço e condições para um produto. Um produto pode ter múltiplas ofertas com valores e promoções diferentes.
+
+## Endpoint
+
+```
+POST https://api.klivopay.com.br/api/public/v1/products/{hash}/offers
+```
+
+## Parâmetros
+
+<ParamField path="hash" type="string" required>
+  Hash identificador único do produto
+</ParamField>
+
+<ParamField body="api_token" type="string" required>
+  Seu token de autenticação da API KlivoPay
+</ParamField>
+
+<ParamField body="title" type="string" required>
+  Título da oferta (ex: "Promoção de Lançamento", "Black Friday")
+</ParamField>
+
+<ParamField body="amount" type="integer" required>
+  Valor da oferta em centavos. Exemplo: R$ 199,00 = `19900`
+</ParamField>
+
+<ParamField body="cover" type="string">
+  URL da imagem de capa da oferta
+</ParamField>
+
+## Exemplo de Requisição
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST 'https://api.klivopay.com.br/api/public/v1/products/prod123abc/offers' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "api_token": "seu_token_aqui",
+    "title": "Promoção de Lançamento",
+    "amount": 19900,
+    "cover": "https://exemplo.com/oferta.jpg"
+  }'
+```
+
+```javascript JavaScript
+const productHash = 'prod123abc';
+const response = await fetch(
+  `https://api.klivopay.com.br/api/public/v1/products/${productHash}/offers`,
+  {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      api_token: 'seu_token_aqui',
+      title: 'Promoção de Lançamento',
+      amount: 19900,
+      cover: 'https://exemplo.com/oferta.jpg'
+    })
+  }
+);
+
+const data = await response.json();
+console.log(data);
+```
+
+```python Python
+import requests
+
+product_hash = 'prod123abc'
+url = f'https://api.klivopay.com.br/api/public/v1/products/{product_hash}/offers'
+payload = {
+    'api_token': 'seu_token_aqui',
+    'title': 'Promoção de Lançamento',
+    'amount': 19900,
+    'cover': 'https://exemplo.com/oferta.jpg'
+}
+
+response = requests.post(url, json=payload)
+print(response.json())
+```
+
+```php PHP
+<?php
+$productHash = 'prod123abc';
+$url = "https://api.klivopay.com.br/api/public/v1/products/{$productHash}/offers";
+$data = [
+    'api_token' => 'seu_token_aqui',
+    'title' => 'Promoção de Lançamento',
+    'amount' => 19900,
+    'cover' => 'https://exemplo.com/oferta.jpg'
+];
+
+$options = [
+    'http' => [
+        'header'  => "Content-Type: application/json\r\n",
+        'method'  => 'POST',
+        'content' => json_encode($data)
+    ]
+];
+
+$context = stream_context_create($options);
+$result = file_get_contents($url, false, $context);
+print_r(json_decode($result));
+?>
+```
+
+</CodeGroup>
+
+## Resposta de Sucesso
+
+```json 201 Created
+{
+  "success": true,
+  "data": {
+    "hash": "offer123",
+    "title": "Promoção de Lançamento",
+    "amount": 19900,
+    "cover": "https://exemplo.com/oferta.jpg",
+    "product_hash": "prod123abc",
+    "created_at": "2025-01-20T10:15:00Z"
+  }
+}
+```
+
+## Códigos de Resposta
+
+<ResponseField name="201" type="Created">
+  Oferta criada com sucesso
+</ResponseField>
+
+<ResponseField name="400" type="Bad Request">
+  Dados inválidos na requisição
+</ResponseField>
+
+<ResponseField name="401" type="Unauthorized">
+  Token de API inválido ou ausente
+</ResponseField>
+
+<ResponseField name="404" type="Not Found">
+  Produto não encontrado
+</ResponseField>
+
+<ResponseField name="422" type="Unprocessable Entity">
+  Erro de validação nos dados enviados
+</ResponseField>
+
+<ResponseField name="500" type="Internal Server Error">
+  Erro interno do servidor
+</ResponseField>
+
+<Note>
+  Use o `hash` da oferta criada no parâmetro `offer_hash` ao criar transações.
+</Note>
